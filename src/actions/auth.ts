@@ -30,14 +30,20 @@ export async function signUp(formData: FormData) {
     password: formData.get('password') as string,
   }
 
-  const { error } = await supabase.auth.signUp(data)
+  const { data: authData, error } = await supabase.auth.signUp(data)
 
   if (error) {
     return { error: error.message }
   }
 
-  revalidatePath('/', 'layout')
-  redirect('/')
+  // If session exists, email confirmation is disabled — redirect to app
+  if (authData.session) {
+    revalidatePath('/', 'layout')
+    redirect('/')
+  }
+
+  // Email confirmation required — redirect to login with a message
+  redirect('/login?message=Check+your+email+to+confirm+your+account')
 }
 
 export async function signOut() {

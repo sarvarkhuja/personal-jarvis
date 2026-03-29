@@ -11,6 +11,20 @@ const TRAINING_DAY_NAMES: Record<number, string> = {
   1: 'Monday', 2: 'Tuesday', 4: 'Thursday', 5: 'Friday',
 }
 
+function getNextTrainingDayName(dayOfWeek: number): string {
+  // Training days: Mon=1, Tue=2, Thu=4, Fri=5
+  const nextDayMap: Record<number, string> = {
+    0: 'Monday',    // Sunday → Monday
+    1: 'Tuesday',   // Monday → Tuesday (Mon is training but if we're here it's a rest display)
+    2: 'Thursday',  // Tuesday → Thursday (skip Wed)
+    3: 'Thursday',  // Wednesday → Thursday
+    4: 'Friday',    // Thursday → Friday
+    5: 'Monday',    // Friday → Monday (skip weekend)
+    6: 'Monday',    // Saturday → Monday
+  }
+  return nextDayMap[dayOfWeek] ?? 'Monday'
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
 
@@ -19,7 +33,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('programme_start_date, display_name')
+    .select('programme_start_date, display_name, target_weight_kg')
     .eq('id', user.id)
     .single()
 
@@ -112,7 +126,7 @@ export default async function DashboardPage() {
                 <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Today</p>
                 <p className="font-semibold text-muted-foreground">Rest Day</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Next training: {position.dayOfWeek === 2 ? 'Thursday' : position.dayOfWeek === 5 ? 'Monday' : 'Tomorrow'}
+                  Next training: {getNextTrainingDayName(position.dayOfWeek)}
                 </p>
               </>
             )}
@@ -153,7 +167,7 @@ export default async function DashboardPage() {
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold">{latestWeight.weight_kg} kg</span>
                 <span className="text-sm text-muted-foreground">
-                  Target: 80 kg
+                  Target: {profile?.target_weight_kg ?? 80} kg
                 </span>
               </div>
             </CardContent>

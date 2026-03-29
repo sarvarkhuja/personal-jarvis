@@ -1,12 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from '@/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+function LoginMessage() {
+  const searchParams = useSearchParams()
+  const message = searchParams.get('message')
+  if (!message) return null
+  return <p className="text-sm text-green-600">{message}</p>
+}
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -41,6 +49,9 @@ export default function LoginPage() {
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
+          <Suspense>
+            <LoginMessage />
+          </Suspense>
           <Button type="submit" className="w-full" disabled={pending}>
             {pending ? 'Signing in…' : 'Sign in'}
           </Button>
