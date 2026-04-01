@@ -130,3 +130,72 @@ export interface ProgrammePosition {
   isTrainingDay: boolean
   daysElapsed: number
 }
+
+export interface Expense {
+  id: string
+  user_id: string
+  amount_pence: number
+  currency: string
+  category: 'food' | 'transport' | 'shopping' | 'entertainment' | 'health' | 'other'
+  description: string | null
+  date: string
+  created_at: string
+}
+
+export interface Goal {
+  id: string
+  user_id: string
+  title: string
+  description: string | null
+  target_value: number | null
+  current_value: number
+  unit: string | null
+  deadline: string | null
+  status: 'active' | 'completed' | 'paused'
+  created_at: string
+}
+
+export interface FocusArea {
+  id: string
+  user_id: string
+  name: string
+  emoji: string
+  sort_order: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface FocusCheckin {
+  id: string
+  user_id: string
+  focus_area_id: string
+  date: string
+  created_at: string
+}
+
+export interface Habit {
+  id: string
+  user_id: string
+  name: string
+  emoji: string
+  sort_order: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface HabitCompletion {
+  id: string
+  user_id: string
+  habit_id: string
+  date: string
+  created_at: string
+}
+
+export interface DisciplineScore {
+  id: string
+  user_id: string
+  date: string
+  score: number
+  notes: string | null
+  created_at: string
+}

@@ -1,29 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProgrammePosition } from '@/lib/utils/week-calculator'
 import { redirect } from 'next/navigation'
-import { Header } from '@/components/layout/Header'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
-
-const TRAINING_DAY_NAMES: Record<number, string> = {
-  1: 'Monday', 2: 'Tuesday', 4: 'Thursday', 5: 'Friday',
-}
-
-function getNextTrainingDayName(dayOfWeek: number): string {
-  // Training days: Mon=1, Tue=2, Thu=4, Fri=5
-  const nextDayMap: Record<number, string> = {
-    0: 'Monday',    // Sunday → Monday
-    1: 'Tuesday',   // Monday → Tuesday (Mon is training but if we're here it's a rest display)
-    2: 'Thursday',  // Tuesday → Thursday (skip Wed)
-    3: 'Thursday',  // Wednesday → Thursday
-    4: 'Friday',    // Thursday → Friday
-    5: 'Monday',    // Friday → Monday (skip weekend)
-    6: 'Monday',    // Saturday → Monday
-  }
-  return nextDayMap[dayOfWeek] ?? 'Monday'
-}
+import { JarvisDashboard } from '@/components/dashboard/JarvisDashboard'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -40,141 +18,124 @@ export default async function DashboardPage() {
   const startDate = profile?.programme_start_date
     ? new Date(profile.programme_start_date)
     : new Date()
-
   const position = getCurrentProgrammePosition(startDate)
-  const progressPercent = Math.round((position.weekNumber / 12) * 100)
 
-  const { data: blocks } = await supabase
-    .from('blocks')
-    .select('id')
-    .lte('week_start', position.weekNumber)
-    .gte('week_end', position.weekNumber)
-    .single()
+  const today = new Date().toISOString().split('T')[0]
+  const weekStart = new Date()
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1)
+  const weekStartStr = weekStart.toISOString().split('T')[0]
 
-  const { data: todayDay } = blocks
+  // Past 6 months start date for expenses
+  const sixMonthsAgo = new Date()
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+  const sixMonthsAgoStr = sixMonthsAgo.toISOString().split('T')[0]
+
+  // Past 30 days for checkins/completions/scores
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+
+  // Phase 2: All independent queries in parallel
+  const [
+    blocksResult,
+    weekSessionsResult,
+    latestWeightResult,
+    goalsResult,
+    expensesResult,
+    focusAreasResult,
+    focusCheckinsResult,
+    habitsResult,
+    habitCompletionsResult,
+    disciplineScoresResult,
+  ] = await Promise.all([
+    supabase
+      .from('blocks')
+      .select('id')
+      .lte('week_start', position.weekNumber)
+      .gte('week_end', position.weekNumber)
+      .single(),
+    supabase
+      .from('workout_sessions')
+      .select('session_date')
+      .eq('user_id', user.id)
+      .eq('week_number', position.weekNumber)
+      .gte('session_date', weekStartStr),
+    supabase
+      .from('body_metrics')
+      .select('weight_kg, date')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false })
+      .limit(1)
+      .single(),
+    supabase
+      .from('goals')
+      .select('id, user_id, title, description, target_value, current_value, unit, deadline, status, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('expenses')
+      .select('id, user_id, amount_pence, currency, category, description, date, created_at')
+      .eq('user_id', user.id)
+      .gte('date', sixMonthsAgoStr)
+      .order('date', { ascending: false }),
+    supabase
+      .from('focus_areas')
+      .select('id, user_id, name, emoji, sort_order, is_active, created_at')
+      .eq('user_id', user.id)
+      .order('sort_order'),
+    supabase
+      .from('focus_checkins')
+      .select('id, user_id, focus_area_id, date, created_at')
+      .eq('user_id', user.id)
+      .gte('date', thirtyDaysAgoStr),
+    supabase
+      .from('habits')
+      .select('id, user_id, name, emoji, sort_order, is_active, created_at')
+      .eq('user_id', user.id)
+      .order('sort_order'),
+    supabase
+      .from('habit_completions')
+      .select('id, user_id, habit_id, date, created_at')
+      .eq('user_id', user.id)
+      .gte('date', thirtyDaysAgoStr),
+    supabase
+      .from('discipline_scores')
+      .select('id, user_id, date, score, notes, created_at')
+      .eq('user_id', user.id)
+      .gte('date', thirtyDaysAgoStr)
+      .order('date', { ascending: false }),
+  ])
+
+  // Phase 3: todayDay depends on blocks
+  const { data: todayDay } = blocksResult.data
     ? await supabase
         .from('programme_days')
         .select('id, name, emphasis')
-        .eq('block_id', blocks.id)
+        .eq('block_id', blocksResult.data.id)
         .eq('day_of_week', position.dayOfWeek)
         .single()
     : { data: null }
 
-  const weekStart = new Date()
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1)
-  const { data: weekSessions } = await supabase
-    .from('workout_sessions')
-    .select('session_date')
-    .eq('user_id', user.id)
-    .eq('week_number', position.weekNumber)
-    .gte('session_date', weekStart.toISOString().split('T')[0])
-
-  const completedDays = new Set(weekSessions?.map((s) => new Date(s.session_date).getDay()) ?? [])
-
-  const { data: latestWeight } = await supabase
-    .from('body_metrics')
-    .select('weight_kg, date')
-    .eq('user_id', user.id)
-    .order('date', { ascending: false })
-    .limit(1)
-    .single()
-
-  const trainingDayDows = [1, 2, 4, 5]
+  const completedDows = (weekSessionsResult.data ?? []).map(
+    s => new Date(s.session_date).getDay()
+  )
 
   return (
-    <div className="pb-24">
-      <Header title="Training" />
-      <div className="p-4 space-y-4">
-
-        {/* Week progress */}
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Week {position.weekNumber} of 12 · Block {position.blockName}</span>
-              <span className="text-xs text-muted-foreground">{progressPercent}%</span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            {position.isDeloadWeek && (
-              <Badge variant="outline" className="mt-2 text-yellow-500 border-yellow-500/30">
-                Deload Week
-              </Badge>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Today's workout */}
-        <Card>
-          <CardContent className="pt-4">
-            {position.isTrainingDay && todayDay ? (
-              <>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Today</p>
-                <p className="font-semibold">{todayDay.name}</p>
-                {todayDay.emphasis && (
-                  <p className="text-sm text-muted-foreground">{todayDay.emphasis}</p>
-                )}
-                <Link href="/workout" className="block mt-3">
-                  <Button className="w-full">Start Workout</Button>
-                </Link>
-              </>
-            ) : (
-              <>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Today</p>
-                <p className="font-semibold text-muted-foreground">Rest Day</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Next training: {getNextTrainingDayName(position.dayOfWeek)}
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* This week's sessions */}
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">This Week</p>
-            <div className="flex gap-3">
-              {trainingDayDows.map((dow) => {
-                const done = completedDays.has(dow)
-                return (
-                  <div key={dow} className="flex flex-col items-center gap-1">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
-                      done
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {done ? '✓' : ''}
-                    </div>
-                    <span className="text-[10px] text-muted-foreground">
-                      {TRAINING_DAY_NAMES[dow]?.slice(0, 3)}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Bodyweight */}
-        {latestWeight && (
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Bodyweight</p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold">{latestWeight.weight_kg} kg</span>
-                <span className="text-sm text-muted-foreground">
-                  Target: {profile?.target_weight_kg ?? 80} kg
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-      </div>
-    </div>
+    <JarvisDashboard
+      displayName={profile?.display_name ?? null}
+      position={position}
+      todayDay={todayDay ?? null}
+      completedDows={completedDows}
+      latestWeight={latestWeightResult.data ?? null}
+      targetWeightKg={profile?.target_weight_kg ?? null}
+      goals={goalsResult.data ?? []}
+      expenses={expensesResult.data ?? []}
+      focusAreas={focusAreasResult.data ?? []}
+      focusCheckins={focusCheckinsResult.data ?? []}
+      habits={habitsResult.data ?? []}
+      habitCompletions={habitCompletionsResult.data ?? []}
+      disciplineScores={disciplineScoresResult.data ?? []}
+      today={today}
+    />
   )
 }

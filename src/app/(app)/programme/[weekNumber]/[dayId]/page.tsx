@@ -33,7 +33,7 @@ export default async function DayViewPage({ params }: Props) {
   const isDeload = Number(weekNumber) === 4 || Number(weekNumber) === 8
 
   return (
-    <div className="p-4 pb-24">
+    <div className="max-w-3xl px-6 py-6">
       <Link
         href="/programme"
         className="flex items-center gap-1 text-sm text-muted-foreground mb-4 -ml-1"

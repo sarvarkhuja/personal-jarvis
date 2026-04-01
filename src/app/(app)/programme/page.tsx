@@ -39,7 +39,7 @@ export default async function ProgrammePage() {
   }, {})
 
   return (
-    <div className="p-4 space-y-4 pb-24">
+    <div className="max-w-4xl px-6 py-6 space-y-4">
       <div>
         <h1 className="text-xl font-bold">12-Week Programme</h1>
         <p className="text-sm text-muted-foreground">
@@ -47,6 +47,7 @@ export default async function ProgrammePage() {
         </p>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {(blocks ?? []).map((block: Block) => (
         <div key={block.id} className="space-y-2">
           <BlockCard
@@ -77,6 +78,7 @@ export default async function ProgrammePage() {
           </div>
         </div>
       ))}
+      </div>
     </div>
   )
 }
