@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { Button } from '@/components/ui/button'
 import type { Habit, HabitCompletion, DisciplineScore } from '@/types'
 import { addHabit, toggleHabitCompletion, saveDisciplineScore } from '@/actions/discipline'
 import { calcHabitStreak } from '@/lib/utils/dashboard-utils'
@@ -52,7 +51,8 @@ export function DisciplineTab({ habits, habitCompletions, disciplineScores, toda
 
   const scoreMap = new Map(disciplineScores.map(s => [s.date, s.score]))
   const chartData = last30Days.map(day => ({
-    day: new Date(day).getDate().toString(),
+    day: new Date(day).getDate().toString().padStart(2, '0'),
+    tick: day.slice(8, 10), // the day number
     score: scoreMap.get(day) ?? null,
   }))
 
@@ -69,61 +69,58 @@ export function DisciplineTab({ habits, habitCompletions, disciplineScores, toda
   }
 
   return (
-    <div className="space-y-5 max-w-2xl">
+    <div className="space-y-8 max-w-2xl w-full">
       {/* Habits checklist */}
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-        <div className="font-mono text-[9px] tracking-widest uppercase text-[#444] mb-3">Today's Habits</div>
+      <div className="bg-surface border border-border rounded-lg p-6">
+        <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-6">[ TODAY&apos;S HABITS ]</div>
         {habits.filter(h => h.is_active).length === 0 ? (
-          <p className="font-mono text-xs text-[#333]">No habits yet.</p>
+          <p className="font-mono text-sm text-text-disabled uppercase">None yet</p>
         ) : (
           <div className="space-y-0">
-            {habits.filter(h => h.is_active).map(habit => {
+            {habits.filter(h => h.is_active).map((habit, idx, arr) => {
               const completions = habitCompletions
                 .filter(c => c.habit_id === habit.id)
                 .map(c => c.date)
               const streak = calcHabitStreak(completions, today)
               const doneToday = todayCompletedHabitIds.has(habit.id)
               const completionSet = new Set(completions)
+              const isLast = idx === arr.length - 1
 
               return (
-                <div key={habit.id} className="py-2.5 border-b border-[#0d0d0d] last:border-0">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
+                <div key={habit.id} className={`py-4 ${!isLast ? 'border-b border-border' : ''}`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
                       <button
                         onClick={() => handleToggleHabit(habit.id)}
                         disabled={isPending}
-                        className={`size-5 rounded border flex items-center justify-center text-[10px] transition-all ${
-                          doneToday
-                            ? 'bg-pink-500/10 border-pink-500/40 text-pink-400'
-                            : 'bg-[#111] border-[#222] text-[#333] hover:border-pink-500/30'
-                        }`}
+                        className={`w-[44px] h-[24px] rounded-full border border-border-visible p-[2px] flex shrink-0 ${doneToday ? 'bg-text-display' : 'bg-transparent'}`}
                       >
-                        {doneToday ? '✓' : ''}
+                        <div className={`w-[18px] h-[18px] rounded-full transition-transform ${doneToday ? 'translate-x-[20px] bg-background' : 'bg-text-disabled'}`} />
                       </button>
-                      <span className="font-mono text-xs text-[#888]">{habit.emoji} {habit.name}</span>
+                      <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-primary">{habit.emoji} {habit.name}</span>
                     </div>
                     {streak > 0 && (
-                      <span className="font-mono text-[10px] text-amber-400">🔥 {streak}d</span>
+                      <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-warning">{streak}d</span>
                     )}
                   </div>
-                  {/* 7-day dot grid */}
-                  <div className="flex gap-[3px] ml-7">
+                  {/* 7-day trailing blocks */}
+                  <div className="flex gap-1 ml-[60px]">
                     {last7Days.map(day => {
                       const done = completionSet.has(day)
                       const isToday = day === today
-                      const label = new Date(day).toLocaleString('en-GB', { weekday: 'narrow' })
+                      const label = new Date(day).toLocaleString('en-GB', { weekday: 'narrow' }).toUpperCase()
                       return (
-                        <div key={day} className="flex flex-col items-center gap-0.5">
-                          <div className={`w-5 h-5 rounded-[3px] flex items-center justify-center text-[7px] ${
+                        <div key={day} className="flex flex-col items-center gap-1">
+                          <div className={`w-6 h-6 rounded-none border border-border-visible flex items-center justify-center ${
                             done
-                              ? 'bg-pink-500/20 border border-pink-500/40 text-pink-400'
+                              ? 'bg-text-display border-text-display text-background'
                               : isToday
-                                ? 'bg-[#111] border border-pink-500/20 text-[#333]'
-                                : 'bg-[#0d0d0d] border border-[#111] text-[#222]'
+                                ? 'bg-surface border-text-secondary text-text-primary'
+                                : 'bg-transparent text-text-disabled'
                           }`}>
-                            {done ? '✓' : ''}
+                            <span className="font-doto text-[10px] leading-none">{done ? '·' : ''}</span>
                           </div>
-                          <span className={`font-mono text-[7px] ${isToday ? 'text-pink-400' : 'text-[#333]'}`}>
+                          <span className={`font-mono text-[9px] uppercase ${isToday ? 'text-text-primary' : 'text-text-disabled'}`}>
                             {label}
                           </span>
                         </div>
@@ -138,101 +135,108 @@ export function DisciplineTab({ habits, habitCompletions, disciplineScores, toda
       </div>
 
       {/* Daily score */}
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="font-mono text-[9px] tracking-widest uppercase text-[#444]">Today's Score</div>
+      <div className="bg-surface border border-border rounded-lg p-6">
+        <div className="flex items-center justify-between mb-8">
+          <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">[ TODAY&apos;S SCORE ]</div>
           {todayScore && (
-            <span className="font-mono text-xs text-pink-400">{todayScore.score}/10 saved</span>
+            <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-success">[{todayScore.score}/10 SAVED]</span>
           )}
         </div>
-        <div className="flex items-center gap-4">
-          <input
-            type="range"
-            min={1}
-            max={10}
-            value={scoreInput}
-            onChange={e => setScoreInput(Number(e.target.value))}
-            className="flex-1 accent-pink-500"
-          />
-          <span className="font-mono text-2xl font-bold text-pink-400 w-8">{scoreInput}</span>
-          <Button
-            onClick={handleSaveScore}
-            disabled={isPending}
-            size="sm"
-            variant="outline"
-            className="font-mono text-[10px] tracking-widest border-pink-500/30 text-pink-400 hover:bg-pink-500/10 shrink-0"
-          >
-            {isPending ? '...' : 'SAVE'}
-          </Button>
+        <div className="flex items-end gap-6">
+          <div className="flex-1 pb-1">
+            <input
+              type="range"
+              min={1}
+              max={10}
+              value={scoreInput}
+              onChange={e => setScoreInput(Number(e.target.value))}
+              className="w-full h-2 rounded-none bg-border appearance-none cursor-pointer accent-text-display"
+              style={{ accentColor: 'var(--text-display)' }}
+            />
+            <div className="flex justify-between mt-2 font-mono text-[9px] text-text-disabled">
+              <span>1</span>
+              <span>10</span>
+            </div>
+          </div>
+          <div className="flex flex-col items-end">
+             <span className="font-doto text-4xl leading-none tracking-tight text-text-display mb-2">{scoreInput}</span>
+             <button
+               onClick={handleSaveScore}
+               disabled={isPending}
+               className="font-mono text-[11px] tracking-[0.08em] uppercase bg-transparent border border-border-visible text-text-primary px-4 py-2 hover:border-text-primary transition-colors disabled:opacity-50"
+             >
+               {isPending ? '[ SAVING ]' : '[ SAVE ]'}
+             </button>
+          </div>
         </div>
       </div>
 
       {/* 30-day score trend */}
       {disciplineScores.length > 0 && (
-        <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-          <div className="font-mono text-[9px] tracking-widest uppercase text-[#444] mb-3">30-Day Score Trend</div>
-          <ResponsiveContainer width="100%" height={100}>
-            <LineChart data={chartData}>
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 8, fontFamily: 'var(--font-geist-mono)', fill: '#333' }}
-                axisLine={false}
-                tickLine={false}
-                interval={4}
-              />
-              <YAxis domain={[0, 10]} hide />
-              <Tooltip
-                cursor={{ stroke: '#333' }}
-                content={({ active, payload, label }) => {
-                  if (!active || !payload?.length || payload[0].value == null) return null
-                  return (
-                    <div className="bg-[#111] border border-[#222] rounded px-2 py-1 font-mono text-[10px] text-pink-400">
-                      {payload[0].value}/10
-                    </div>
-                  )
-                }}
-              />
-              <ReferenceLine y={7} stroke="#333" strokeDasharray="3 3" />
-              <Line
-                type="monotone"
-                dataKey="score"
-                stroke="#ec4899"
-                strokeWidth={1.5}
-                dot={false}
-                connectNulls={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="bg-surface border border-border rounded-lg p-6">
+          <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-8">[ 30-DAY SCORE TREND ]</div>
+          <div className="h-[140px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                <XAxis
+                  dataKey="tick"
+                  tick={{ fontSize: 9, fontFamily: 'var(--font-mono)', fill: 'var(--text-disabled)' }}
+                  axisLine={false}
+                  tickLine={false}
+                  interval={4}
+                />
+                <YAxis domain={[0, 10]} hide />
+                <Tooltip
+                  cursor={{ stroke: 'var(--border-visible)' }}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length || payload[0].value == null) return null
+                    return (
+                      <div className="bg-background border border-border-visible px-3 py-2 font-mono text-[11px] tracking-[0.08em] text-text-display uppercase">
+                        {payload[0].value} / 10
+                      </div>
+                    )
+                  }}
+                />
+                <ReferenceLine y={7} stroke="var(--border-visible)" strokeDasharray="2 2" />
+                <Line
+                  type="stepAfter"
+                  dataKey="score"
+                  stroke="var(--text-display)"
+                  strokeWidth={2}
+                  dot={false}
+                  connectNulls={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
 
       {/* Add habit */}
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-        <div className="font-mono text-[9px] tracking-widest uppercase text-[#444] mb-3">Add Habit</div>
-        <form action={handleAddHabit} className="flex gap-2">
+      <div className="bg-surface border border-border rounded-lg p-6">
+        <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-6">[ ADD HABIT ]</div>
+        <form action={handleAddHabit} className="flex gap-4">
           <input
             name="emoji"
             type="text"
-            placeholder="✅"
+            placeholder="XX"
             maxLength={2}
-            className="w-12 bg-[#111] border border-[#222] rounded px-2 py-1.5 font-mono text-sm text-center text-[#aaa] focus:outline-none focus:border-pink-500/50"
+            className="w-12 bg-transparent border-b border-border-visible py-2 font-mono text-[13px] text-center text-text-primary focus:outline-none focus:border-text-primary transition-colors placeholder:text-text-disabled"
           />
           <input
             name="name"
             type="text"
-            placeholder="Habit name"
+            placeholder="HABIT NAME"
             required
-            className="flex-1 bg-[#111] border border-[#222] rounded px-2 py-1.5 font-mono text-xs text-[#aaa] placeholder:text-[#333] focus:outline-none focus:border-pink-500/50"
+            className="flex-1 bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors"
           />
-          <Button
+          <button
             type="submit"
             disabled={isPending}
-            size="sm"
-            variant="outline"
-            className="font-mono text-[10px] tracking-widest border-pink-500/30 text-pink-400 hover:bg-pink-500/10 shrink-0"
+            className="font-mono text-[11px] tracking-[0.08em] uppercase bg-transparent border border-border-visible text-text-primary px-6 py-2 hover:border-text-primary transition-colors disabled:opacity-50"
           >
             + ADD
-          </Button>
+          </button>
         </form>
       </div>
     </div>

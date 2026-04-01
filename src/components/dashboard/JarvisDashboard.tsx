@@ -53,7 +53,7 @@ export function JarvisDashboard(props: JarvisDashboardProps) {
   }).toUpperCase()
 
   return (
-    <div className="min-h-full bg-[#050505]">
+    <div className="min-h-full w-full bg-[#050505]">
       {/* Header */}
       <div className="px-6 pt-5 pb-0">
         <div className="flex items-start justify-between mb-1">

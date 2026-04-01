@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import type { Goal } from '@/types'
 import { addGoal, updateGoalProgress, completeGoal } from '@/actions/goals'
 
@@ -37,16 +35,16 @@ export function GoalsTab({ goals, today }: GoalsTabProps) {
   }
 
   return (
-    <div className="space-y-5 max-w-2xl">
+    <div className="space-y-8 max-w-2xl w-full">
       {/* Active goals */}
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-        <div className="font-mono text-[9px] tracking-widest uppercase text-[#444] mb-4">
-          Active Goals · {activeGoals.length}
+      <div className="bg-surface border border-border rounded-lg p-6">
+        <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-8">
+          [ ACTIVE GOALS · {activeGoals.length} ]
         </div>
         {activeGoals.length === 0 ? (
-          <p className="font-mono text-xs text-[#333]">No active goals. Add one below.</p>
+          <p className="font-mono text-sm text-text-disabled uppercase">No active goals. Add one below.</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-8">
             {activeGoals.map(goal => {
               const pct = goal.target_value
                 ? Math.min(100, Math.round((goal.current_value / goal.target_value) * 100))
@@ -56,78 +54,83 @@ export function GoalsTab({ goals, today }: GoalsTabProps) {
                 : null
 
               return (
-                <div key={goal.id} className="border border-[#1a1a1a] rounded p-3">
-                  <div className="flex items-start justify-between mb-2">
+                <div key={goal.id} className="border border-border rounded-none p-6">
+                  <div className="flex items-start justify-between mb-4">
                     <div>
-                      <p className="font-mono text-sm font-semibold text-indigo-400">{goal.title}</p>
+                      <p className="font-mono text-[13px] tracking-[0.08em] uppercase text-text-primary">{goal.title}</p>
                       {goal.description && (
-                        <p className="font-mono text-[10px] text-[#444] mt-0.5">{goal.description}</p>
+                        <p className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-disabled mt-2">{goal.description}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <div className="flex items-center gap-4 shrink-0 ml-4">
                       {daysLeft !== null && (
-                        <Badge
-                          variant="outline"
-                          className={`font-mono text-[9px] ${
+                        <span className={`font-mono text-[11px] tracking-[0.08em] uppercase border px-2 py-1 rounded-none ${
                             daysLeft < 7
-                              ? 'text-red-400 border-red-500/30'
-                              : 'text-[#444] border-[#222]'
+                              ? 'text-accent border-accent'
+                              : 'text-text-secondary border-border-visible'
                           }`}
                         >
-                          {daysLeft}d left
-                        </Badge>
+                          {daysLeft}D LEFT
+                        </span>
                       )}
                       <button
                         onClick={() => handleComplete(goal.id)}
                         disabled={isPending}
-                        className="font-mono text-[9px] text-[#333] hover:text-green-400 transition-colors"
+                        className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary hover:text-success transition-colors disabled:opacity-50"
                       >
-                        ✓ done
+                        [ ✓ DONE ]
                       </button>
                     </div>
                   </div>
 
                   {/* Progress bar */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex-1 h-[3px] bg-[#111] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-500 rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="flex-1 flex gap-[2px] h-[8px]">
+                      {Array.from({ length: 40 }).map((_, i) => {
+                        const isFilled = i < pct / 2.5;
+                        return (
+                          <div
+                            key={i}
+                            className={`flex-[1_0_0%] ${isFilled ? 'bg-text-display' : 'bg-border'}`}
+                          />
+                        )
+                      })}
                     </div>
-                    <span className="font-mono text-[9px] text-[#444] shrink-0">{pct}%</span>
+                    <span className="font-mono text-[13px] tracking-[0.08em] text-text-primary shrink-0">{pct}%</span>
                   </div>
 
                   {/* Current / Target + edit */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-4 mt-6">
                     {editingId === goal.id ? (
-                      <>
+                      <div className="flex items-center gap-3">
                         <input
                           type="number"
                           value={editValue}
                           onChange={e => setEditValue(e.target.value)}
-                          className="w-20 bg-[#111] border border-indigo-500/30 rounded px-2 py-1 font-mono text-xs text-indigo-400 focus:outline-none"
+                          className="w-24 bg-transparent border-b border-border-visible focus:border-text-primary text-text-primary px-2 py-1 font-mono text-[13px] transition-colors outline-none"
                           autoFocus
                         />
-                        <span className="font-mono text-[9px] text-[#333]">
+                        <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">
                           / {goal.target_value} {goal.unit}
                         </span>
-                        <button
-                          onClick={() => handleUpdateProgress(goal.id)}
-                          className="font-mono text-[9px] text-indigo-400 hover:text-indigo-300"
-                        >
-                          save
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="font-mono text-[9px] text-[#444] hover:text-[#888]"
-                        >
-                          cancel
-                        </button>
-                      </>
+                        <div className="flex gap-2 ml-4">
+                          <button
+                            onClick={() => handleUpdateProgress(goal.id)}
+                            className="font-mono text-[11px] tracking-[0.08em] uppercase px-3 py-1 border border-border-visible text-text-primary hover:border-text-primary transition-colors"
+                          >
+                            SAVE
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="font-mono text-[11px] tracking-[0.08em] uppercase px-3 py-1 text-text-secondary hover:text-text-primary transition-colors"
+                          >
+                            CANCEL
+                          </button>
+                        </div>
+                      </div>
                     ) : (
-                      <>
-                        <span className="font-mono text-xs text-[#666]">
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">
                           {goal.current_value} / {goal.target_value ?? '?'} {goal.unit}
                         </span>
                         <button
@@ -135,11 +138,11 @@ export function GoalsTab({ goals, today }: GoalsTabProps) {
                             setEditingId(goal.id)
                             setEditValue(String(goal.current_value))
                           }}
-                          className="font-mono text-[9px] text-[#333] hover:text-indigo-400 transition-colors"
+                          className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary hover:text-text-primary transition-colors"
                         >
-                          update
+                          [ UPDATE ]
                         </button>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -150,61 +153,62 @@ export function GoalsTab({ goals, today }: GoalsTabProps) {
       </div>
 
       {/* Add goal form */}
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-        <div className="font-mono text-[9px] tracking-widest uppercase text-[#444] mb-3">Add Goal</div>
-        <form action={handleAddGoal} className="space-y-2">
+      <div className="bg-surface border border-border rounded-lg p-6">
+        <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-6">[ ADD GOAL ]</div>
+        <form action={handleAddGoal} className="space-y-4">
           <input
             name="title"
             type="text"
-            placeholder="Goal title"
+            placeholder="GOAL TITLE"
             required
-            className="w-full bg-[#111] border border-[#222] rounded px-2 py-1.5 font-mono text-xs text-[#aaa] placeholder:text-[#333] focus:outline-none focus:border-indigo-500/50"
+            className="w-full bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors"
           />
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-6">
             <input
               name="target_value"
               type="number"
               step="any"
-              placeholder="Target"
-              className="bg-[#111] border border-[#222] rounded px-2 py-1.5 font-mono text-xs text-[#aaa] placeholder:text-[#333] focus:outline-none focus:border-indigo-500/50"
+              placeholder="TARGET"
+              className="bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors"
             />
             <input
               name="unit"
               type="text"
-              placeholder="Unit (kg, books…)"
-              className="bg-[#111] border border-[#222] rounded px-2 py-1.5 font-mono text-xs text-[#aaa] placeholder:text-[#333] focus:outline-none focus:border-indigo-500/50"
+              placeholder="UNIT"
+              className="bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors"
             />
             <input
               name="deadline"
               type="date"
-              className="bg-[#111] border border-[#222] rounded px-2 py-1.5 font-mono text-xs text-[#aaa] focus:outline-none focus:border-indigo-500/50"
+              className="bg-transparent border-b border-border-visible py-2 font-mono text-[13px] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors uppercase tracking-[0.08em] appearance-none"
             />
           </div>
-          <Button
+          <button
             type="submit"
             disabled={isPending}
-            size="sm"
-            variant="outline"
-            className="w-full font-mono text-[10px] tracking-widest border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
+            className="w-full mt-8 bg-text-display text-background font-mono text-[13px] tracking-[0.06em] uppercase h-11 rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {isPending ? 'ADDING...' : '+ ADD GOAL'}
-          </Button>
+            {isPending ? '[ ADDING ]' : 'ADD GOAL'}
+          </button>
         </form>
       </div>
 
       {/* Completed */}
       {completedGoals.length > 0 && (
-        <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-          <div className="font-mono text-[9px] tracking-widest uppercase text-[#444] mb-3">
-            Completed · {completedGoals.length}
+        <div className="bg-surface border border-border rounded-lg p-6">
+          <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-6">
+            [ COMPLETED · {completedGoals.length} ]
           </div>
-          <div className="space-y-1">
-            {completedGoals.map(goal => (
-              <div key={goal.id} className="flex items-center gap-2 py-1">
-                <span className="font-mono text-[9px] text-green-400">✓</span>
-                <span className="font-mono text-[10px] text-[#444] line-through">{goal.title}</span>
-              </div>
-            ))}
+          <div className="space-y-0">
+            {completedGoals.map((goal, idx, arr) => {
+              const isLast = idx === arr.length - 1;
+              return (
+                <div key={goal.id} className={`flex items-center gap-4 py-3 ${!isLast ? 'border-b border-border' : ''}`}>
+                  <span className="font-mono text-[13px] text-success">✓</span>
+                  <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-disabled line-through">{goal.title}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

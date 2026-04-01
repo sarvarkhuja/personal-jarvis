@@ -1,7 +1,6 @@
 'use client'
 
 import { useTransition } from 'react'
-import { Button } from '@/components/ui/button'
 import type { FocusArea, FocusCheckin } from '@/types'
 import { addFocusArea, toggleCheckin } from '@/actions/focus'
 import { calcStreak } from '@/lib/utils/dashboard-utils'
@@ -36,14 +35,14 @@ export function FocusTab({ focusAreas, focusCheckins, today }: FocusTabProps) {
   }
 
   return (
-    <div className="space-y-5 max-w-2xl">
+    <div className="space-y-8 max-w-2xl w-full">
       {/* Focus areas */}
       {focusAreas.filter(a => a.is_active).length === 0 ? (
-        <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-          <p className="font-mono text-xs text-[#333]">No focus areas yet. Add one below.</p>
+        <div className="bg-surface border border-border rounded-lg p-16 flex items-center justify-center">
+          <p className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-disabled">[ NO FOCUS AREAS YET ]</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {focusAreas.filter(a => a.is_active).map(area => {
             const areaCheckins = focusCheckins
               .filter(c => c.focus_area_id === area.id)
@@ -53,51 +52,51 @@ export function FocusTab({ focusAreas, focusCheckins, today }: FocusTabProps) {
             const checkedToday = checkinSet.has(today)
 
             return (
-              <div key={area.id} className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{area.emoji}</span>
-                    <span className="font-mono text-sm font-semibold text-[#ccc]">{area.name}</span>
+              <div key={area.id} className="bg-surface border border-border rounded-lg p-6">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <span className="font-mono text-[13px] tracking-[0.08em] uppercase text-text-secondary">{area.emoji}</span>
+                    <span className="font-mono text-[13px] tracking-[0.08em] uppercase text-text-primary">{area.name}</span>
                     {streak > 0 && (
-                      <span className="font-mono text-xs text-cyan-400">{streak}d streak</span>
+                      <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-interactive">[{streak}D STREAK]</span>
                     )}
                   </div>
                   <button
                     onClick={() => handleToggle(area.id)}
                     disabled={isPending}
-                    className={`font-mono text-[10px] tracking-widest px-3 py-1 rounded border transition-all ${
+                    className={`font-mono text-[11px] tracking-[0.08em] uppercase px-4 py-2 rounded-full border transition-all disabled:opacity-50 ${
                       checkedToday
-                        ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400'
-                        : 'bg-[#111] border-[#222] text-[#444] hover:border-cyan-500/30 hover:text-cyan-400'
+                        ? 'bg-text-display border-text-display text-background'
+                        : 'bg-transparent border-border-visible text-text-primary hover:border-text-primary'
                     }`}
                   >
-                    {checkedToday ? '✓ DONE' : '○ CHECK IN'}
+                    {checkedToday ? '[ ✓ DONE ]' : '[ CHECK IN ]'}
                   </button>
                 </div>
 
                 {/* 30-day dot grid */}
-                <div className="flex gap-[3px] flex-wrap">
-                  {days.map(day => {
+                <div className="flex gap-[4px] flex-wrap">
+                  {days.map((day, idx) => {
                     const done = checkinSet.has(day)
                     const isToday = day === today
                     return (
                       <div
                         key={day}
                         title={day}
-                        className={`w-[10px] h-[10px] rounded-[2px] ${
+                        className={`w-[14px] h-[14px] rounded-none border ${
                           done
-                            ? 'bg-cyan-500/50 border border-cyan-500/40'
+                            ? 'bg-text-display border-text-display'
                             : isToday
-                              ? 'bg-[#111] border border-cyan-500/20'
-                              : 'bg-[#111] border border-[#1a1a1a]'
+                              ? 'bg-transparent border-text-primary'
+                              : 'bg-transparent border-border-visible'
                         }`}
                       />
                     )
                   })}
                 </div>
-                <div className="flex justify-between mt-1">
-                  <span className="font-mono text-[8px] text-[#333]">30 days ago</span>
-                  <span className="font-mono text-[8px] text-[#333]">today</span>
+                <div className="flex justify-between mt-3">
+                  <span className="font-mono text-[9px] tracking-[0.08em] uppercase text-text-disabled">30 DAYS AGO</span>
+                  <span className="font-mono text-[9px] tracking-[0.08em] uppercase text-text-primary">TODAY</span>
                 </div>
               </div>
             )
@@ -106,32 +105,30 @@ export function FocusTab({ focusAreas, focusCheckins, today }: FocusTabProps) {
       )}
 
       {/* Add focus area */}
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-        <div className="font-mono text-[9px] tracking-widest uppercase text-[#444] mb-3">Add Focus Area</div>
-        <form action={handleAdd} className="flex gap-2">
+      <div className="bg-surface border border-border rounded-lg p-6">
+        <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-6">[ ADD FOCUS AREA ]</div>
+        <form action={handleAdd} className="flex gap-4">
           <input
             name="emoji"
             type="text"
-            placeholder="🎯"
+            placeholder="XX"
             maxLength={2}
-            className="w-12 bg-[#111] border border-[#222] rounded px-2 py-1.5 font-mono text-sm text-center text-[#aaa] focus:outline-none focus:border-cyan-500/50"
+            className="w-12 bg-transparent border-b border-border-visible py-2 font-mono text-[13px] text-center text-text-primary focus:outline-none focus:border-text-primary transition-colors placeholder:text-text-disabled"
           />
           <input
             name="name"
             type="text"
-            placeholder="Focus area name"
+            placeholder="FOCUS AREA NAME"
             required
-            className="flex-1 bg-[#111] border border-[#222] rounded px-2 py-1.5 font-mono text-xs text-[#aaa] placeholder:text-[#333] focus:outline-none focus:border-cyan-500/50"
+            className="flex-1 bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors"
           />
-          <Button
+          <button
             type="submit"
             disabled={isPending}
-            size="sm"
-            variant="outline"
-            className="font-mono text-[10px] tracking-widest border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 shrink-0"
+            className="font-mono text-[11px] tracking-[0.08em] uppercase bg-transparent border border-border-visible text-text-primary px-6 py-2 hover:border-text-primary transition-colors disabled:opacity-50"
           >
             + ADD
-          </Button>
+          </button>
         </form>
       </div>
     </div>

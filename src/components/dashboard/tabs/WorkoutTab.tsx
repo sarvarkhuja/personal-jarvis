@@ -1,17 +1,15 @@
 'use client'
 
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import type { ProgrammePosition } from '@/types'
 
 const TRAINING_DAY_NAMES: Record<number, string> = {
-  1: 'Mon', 2: 'Tue', 4: 'Thu', 5: 'Fri',
+  1: 'MON', 2: 'TUE', 4: 'THU', 5: 'FRI',
 }
 
 const NEXT_TRAINING_DAY: Record<number, string> = {
-  0: 'Monday', 1: 'Tuesday', 2: 'Thursday', 3: 'Thursday',
-  4: 'Friday', 5: 'Monday', 6: 'Monday',
+  0: 'MONDAY', 1: 'TUESDAY', 2: 'THURSDAY', 3: 'THURSDAY',
+  4: 'FRIDAY', 5: 'MONDAY', 6: 'MONDAY',
 }
 
 interface WorkoutTabProps {
@@ -34,78 +32,94 @@ export function WorkoutTab({
   const trainingDayDows = [1, 2, 4, 5]
 
   return (
-    <div className="space-y-4 max-w-4xl">
+    <div className="space-y-8 max-w-4xl w-full">
       {/* Week progress */}
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="font-mono text-xs tracking-widest uppercase text-[#444]">
-            Week Progress
+      <div className="bg-surface border border-border rounded-lg p-6">
+        <div className="flex items-center justify-between mb-8">
+          <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">
+            [ WEEK PROGRESS ]
           </span>
-          <span className="font-mono text-xs text-[#444]">{progressPercent}%</span>
+          <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-primary">[{progressPercent}%]</span>
         </div>
-        <div className="h-1 bg-[#111] rounded-full overflow-hidden mb-2">
-          <div
-            className="h-full bg-green-500 rounded-full transition-all"
-            style={{ width: `${progressPercent}%` }}
-          />
+        
+        <div className="flex gap-[2px] h-[8px] mb-8">
+          {Array.from({ length: 48 }).map((_, i) => {
+            const isFilled = i < progressPercent / (100 / 48);
+            return (
+              <div
+                key={i}
+                className={`flex-[1_0_0%] ${isFilled ? 'bg-text-display' : 'bg-border'}`}
+              />
+            )
+          })}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono text-xs text-[#444]">
-            Week {position.weekNumber} of 12 · Block {position.blockName}
+
+        <div className="flex items-center gap-4 flex-wrap">
+          <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-primary">
+            WEEK {position.weekNumber} OF 12 · BLOCK {position.blockName}
           </span>
           {position.isDeloadWeek && (
-            <Badge variant="outline" className="text-amber-400 border-amber-500/30 text-[10px] font-mono">
+            <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-warning border border-warning px-2 py-1">
               DELOAD
-            </Badge>
+            </span>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Today */}
-        <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-          <div className="font-mono text-[9px] tracking-widest uppercase text-[#444] mb-2">Today</div>
-          {position.isTrainingDay && todayDay ? (
-            <>
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                <span className="font-mono text-sm font-semibold text-green-400">{todayDay.name}</span>
-              </div>
-              {todayDay.emphasis && (
-                <p className="font-mono text-xs text-[#555] mb-3">{todayDay.emphasis}</p>
-              )}
-              <Link href="/workout">
-                <Button size="sm" className="w-full font-mono text-xs tracking-widest">
-                  START WORKOUT
-                </Button>
-              </Link>
-            </>
-          ) : (
-            <>
-              <span className="font-mono text-sm text-[#444]">Rest Day</span>
-              <p className="font-mono text-xs text-[#333] mt-1">
-                Next: {NEXT_TRAINING_DAY[position.dayOfWeek]}
-              </p>
-            </>
+        <div className="bg-surface border border-border rounded-lg p-6 flex flex-col justify-between">
+          <div>
+            <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-6">[ TODAY ]</div>
+            {position.isTrainingDay && todayDay ? (
+              <>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-2 h-2 rounded-none bg-text-display animate-pulse" />
+                  <span className="font-mono text-[13px] tracking-[0.08em] uppercase text-text-display">{todayDay.name}</span>
+                </div>
+                {todayDay.emphasis && (
+                  <p className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-disabled mb-6">{todayDay.emphasis}</p>
+                )}
+              </>
+            ) : (
+              <>
+                <span className="font-mono text-[13px] tracking-[0.08em] uppercase text-text-primary">REST DAY</span>
+                <p className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-disabled mt-2 mb-6">
+                  NEXT: {NEXT_TRAINING_DAY[position.dayOfWeek]}
+                </p>
+              </>
+            )}
+          </div>
+          {position.isTrainingDay && todayDay && (
+            <Link href="/workout" className="w-full">
+              <button className="w-full bg-text-display text-background font-mono text-[13px] tracking-[0.06em] uppercase h-11 rounded-full hover:opacity-90 transition-opacity">
+                START WORKOUT
+              </button>
+            </Link>
           )}
         </div>
 
         {/* This week */}
-        <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-          <div className="font-mono text-[9px] tracking-widest uppercase text-[#444] mb-3">This Week</div>
-          <div className="flex gap-3">
+        <div className="bg-surface border border-border rounded-lg p-6">
+          <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-6">[ THIS WEEK ]</div>
+          <div className="flex gap-4">
             {trainingDayDows.map((dow) => {
               const done = completedSet.has(dow)
+              const isTodayDow = position.dayOfWeek === dow
               return (
-                <div key={dow} className="flex flex-col items-center gap-1">
-                  <div className={`size-8 rounded-full flex items-center justify-center font-mono text-xs ${
+                <div key={dow} className="flex flex-col items-center gap-3">
+                  <div className={`w-10 h-10 rounded-none border border-border-visible flex items-center justify-center font-mono text-[13px] uppercase transition-colors ${
                     done
-                      ? 'bg-green-500/10 border border-green-500/30 text-green-400'
-                      : 'bg-[#111] border border-[#222] text-[#333]'
+                      ? 'bg-text-display text-background border-text-display'
+                      : isTodayDow
+                        ? 'bg-surface text-text-primary border-text-primary'
+                        : 'bg-transparent text-text-disabled'
                   }`}>
                     {done ? '✓' : '·'}
                   </div>
-                  <span className="font-mono text-[9px] text-[#333]">{TRAINING_DAY_NAMES[dow]}</span>
+                  <span className={`font-mono text-[9px] tracking-[0.08em] uppercase ${isTodayDow ? 'text-text-primary' : 'text-text-disabled'}`}>
+                    {TRAINING_DAY_NAMES[dow]}
+                  </span>
                 </div>
               )
             })}
@@ -115,23 +129,23 @@ export function WorkoutTab({
 
       {/* Bodyweight */}
       {latestWeight?.weight_kg && (
-        <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-md p-4">
-          <div className="font-mono text-[9px] tracking-widest uppercase text-[#444] mb-2">Bodyweight</div>
-          <div className="flex items-baseline gap-3">
-            <span className="font-mono text-2xl font-bold text-green-400">
+        <div className="bg-surface border border-border rounded-lg p-6">
+          <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-4">[ BODYWEIGHT ]</div>
+          <div className="flex items-baseline gap-4">
+            <span className="font-doto text-6xl font-bold tracking-tight text-text-display leading-none">
               {latestWeight.weight_kg}
-              <span className="text-sm font-normal text-[#444] ml-1">kg</span>
             </span>
-            <span className="font-mono text-xs text-[#333]">
-              Target: {targetWeightKg ?? 80} kg
+            <span className="font-mono text-[13px] tracking-[0.08em] uppercase text-text-disabled">KG</span>
+            <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary ml-4">
+              [ TARGET: {targetWeightKg ?? 80} KG ]
             </span>
           </div>
         </div>
       )}
 
-      <div className="pt-2">
-        <Link href="/programme" className="font-mono text-[10px] tracking-widest uppercase text-[#444] hover:text-green-400 transition-colors">
-          → View Full Programme
+      <div className="pt-4 flex justify-end">
+        <Link href="/programme" className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary hover:text-text-primary transition-colors">
+          [ VIEW FULL PROGRAMME ↗ ]
         </Link>
       </div>
     </div>

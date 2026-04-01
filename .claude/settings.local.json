@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx shadcn@latest:*)"
+      "Bash(npx shadcn@latest:*)",
+      "Bash(npm run:*)",
+      "Bash(git:*)",
+      "Bash(grep:*)",
+      "Bash(/Users/aki/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.6/skills/brainstorming/scripts/start-server.sh:*)",
+      "Bash(scripts/start-server.sh:*)",
+      "Bash(bash:*)",
+      "Bash(npm *)",
+      "Bash(node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vitest:*)",
+      "Bash(ls:*)"
     ]
   }
 }
