@@ -55,3 +55,18 @@ export async function completeGoal(id: string) {
   if (error) return { error: error.message }
   revalidatePath('/')
 }
+
+export async function deleteGoal(id: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('goals')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/')
+}

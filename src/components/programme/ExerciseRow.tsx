@@ -31,7 +31,7 @@ export function ExerciseRow({ exercise, isDeloadWeek, suggestedWeight }: Exercis
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           {isDeloadWeek && suggestedWeight && (
-            <Badge variant="outline" className="text-yellow-500 border-yellow-500/30 text-xs">
+            <Badge variant="outline" className="text-warning border-warning/30 text-xs">
               {suggestedWeight} kg
             </Badge>
           )}

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import type { Goal } from '@/types'
-import { addGoal, updateGoalProgress, completeGoal } from '@/actions/goals'
+import { addGoal, updateGoalProgress, completeGoal, deleteGoal } from '@/actions/goals'
 
 interface GoalsTabProps {
   goals: Goal[]
@@ -32,6 +32,10 @@ export function GoalsTab({ goals, today }: GoalsTabProps) {
 
   function handleComplete(id: string) {
     startTransition(() => { completeGoal(id) })
+  }
+
+  function handleDelete(id: string) {
+    startTransition(() => { deleteGoal(id) })
   }
 
   return (
@@ -79,6 +83,13 @@ export function GoalsTab({ goals, today }: GoalsTabProps) {
                         className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary hover:text-success transition-colors disabled:opacity-50"
                       >
                         [ ✓ DONE ]
+                      </button>
+                      <button
+                        onClick={() => handleDelete(goal.id)}
+                        disabled={isPending}
+                        className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary hover:text-accent transition-colors disabled:opacity-50"
+                      >
+                        [ ✕ ]
                       </button>
                     </div>
                   </div>
@@ -205,7 +216,14 @@ export function GoalsTab({ goals, today }: GoalsTabProps) {
               return (
                 <div key={goal.id} className={`flex items-center gap-4 py-3 ${!isLast ? 'border-b border-border' : ''}`}>
                   <span className="font-mono text-[13px] text-success">✓</span>
-                  <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-disabled line-through">{goal.title}</span>
+                  <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-disabled line-through flex-1">{goal.title}</span>
+                  <button
+                    onClick={() => handleDelete(goal.id)}
+                    disabled={isPending}
+                    className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-disabled hover:text-accent transition-colors disabled:opacity-50"
+                  >
+                    [ ✕ ]
+                  </button>
                 </div>
               )
             })}

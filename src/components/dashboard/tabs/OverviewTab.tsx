@@ -166,7 +166,7 @@ export function OverviewTab({
           {focusAreas.length === 0 ? (
             <p className="font-mono text-sm text-text-disabled uppercase">None yet</p>
           ) : (
-            <div className="space-y-0 text-white">
+            <div className="space-y-0">
               {focusAreas.filter(a => a.is_active).map((area, idx, arr) => {
                 const areaCheckins = focusCheckins
                   .filter(c => c.focus_area_id === area.id)

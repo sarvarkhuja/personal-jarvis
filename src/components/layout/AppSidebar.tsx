@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Dumbbell, Calendar, User, LogOut } from 'lucide-react'
 import { signOut } from '@/actions/auth'
+import { ThemeToggle } from '@/components/theme-toggle'
 import {
   Sidebar,
   SidebarHeader,
@@ -26,16 +27,27 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="px-4 py-4">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <Dumbbell className="h-5 w-5 shrink-0 text-primary" />
-          <span className="font-semibold text-sm truncate group-data-[collapsible=icon]:hidden">
-            Training
-          </span>
+
+      {/* Wordmark */}
+      <SidebarHeader className="px-3 py-4 dot-grid-subtle">
+        <div className="flex items-center gap-2.5 overflow-hidden min-h-[2rem]">
+          {/* Signal dot — the one expressive moment */}
+          <div className="size-5 shrink-0 border border-sidebar-foreground/30 flex items-center justify-center">
+            <div className="size-1.5 rounded-full bg-accent" />
+          </div>
+          <div className="group-data-[collapsible=icon]:hidden leading-none">
+            <p className="font-mono text-[11px] tracking-[0.14em] uppercase text-sidebar-foreground font-bold">
+              JARVIS
+            </p>
+            <p className="font-mono text-[9px] tracking-[0.08em] uppercase text-sidebar-foreground/40 mt-0.5">
+              TRAINING SYS.
+            </p>
+          </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      {/* Navigation */}
+      <SidebarContent className="py-1">
         <SidebarMenu>
           {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
             const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
@@ -45,8 +57,13 @@ export function AppSidebar() {
                   isActive={isActive}
                   tooltip={label}
                   render={<Link href={href} />}
+                  className={
+                    isActive
+                      ? 'font-mono text-[11px] tracking-[0.08em] uppercase text-sidebar-foreground'
+                      : 'font-mono text-[11px] tracking-[0.08em] uppercase text-sidebar-foreground/40 hover:text-sidebar-foreground/80'
+                  }
                 >
-                  <Icon />
+                  <Icon strokeWidth={1.5} />
                   <span>{label}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -55,21 +72,23 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
 
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <form action={signOut} className="w-full">
-              <SidebarMenuButton
-                tooltip="Sign out"
-                render={<button type="submit" />}
-              >
-                <LogOut />
-                <span>Sign out</span>
-              </SidebarMenuButton>
-            </form>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      {/* Footer — theme + sign out */}
+      <SidebarFooter className="px-2 py-2">
+        <ThemeToggle />
+        <SidebarMenuItem>
+          <form action={signOut} className="w-full">
+            <SidebarMenuButton
+              tooltip="Sign out"
+              render={<button type="submit" />}
+              className="font-mono text-[11px] tracking-[0.08em] uppercase text-sidebar-foreground/30 hover:text-sidebar-foreground/70"
+            >
+              <LogOut strokeWidth={1.5} />
+              <span>Sign out</span>
+            </SidebarMenuButton>
+          </form>
+        </SidebarMenuItem>
       </SidebarFooter>
+
     </Sidebar>
   )
 }

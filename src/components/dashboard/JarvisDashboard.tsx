@@ -53,20 +53,20 @@ export function JarvisDashboard(props: JarvisDashboardProps) {
   }).toUpperCase()
 
   return (
-    <div className="min-h-full w-full bg-[#050505]">
+    <div className="min-h-full w-full">
       {/* Header */}
-      <div className="px-6 pt-5 pb-0">
-        <div className="flex items-start justify-between mb-1">
+      <div className="px-6 pt-8 pb-4">
+        <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="font-mono text-sm font-bold tracking-[0.3em] uppercase text-green-400">
+            <h1 className="font-mono text-3xl font-bold tracking-[0.2em] uppercase text-text-primary leading-none mb-3">
               JARVIS
             </h1>
-            <p className="font-mono text-[10px] tracking-widest text-[#333] mt-0.5">
+            <p className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">
               {dayName} · {dateDisplay} · WEEK {position.weekNumber} OF 12
             </p>
           </div>
           {displayName && (
-            <div className="size-7 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center font-mono text-[10px] text-green-400">
+            <div className="size-10 border border-border-visible shrink-0 flex items-center justify-center font-mono text-[13px] uppercase text-text-primary">
               {displayName[0].toUpperCase()}
             </div>
           )}
@@ -74,18 +74,18 @@ export function JarvisDashboard(props: JarvisDashboardProps) {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-0 px-6 mt-4 border-b border-[#111]">
+      <div className="flex gap-6 px-6 mt-2 border-b border-border overflow-x-auto">
         {TABS.map(({ id, label }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
-            className={`font-mono text-[9px] tracking-widest uppercase pb-2 px-3 border-b-2 transition-colors ${
+            className={`font-mono text-[11px] tracking-[0.08em] uppercase pb-3 border-b-2 transition-colors whitespace-nowrap ${
               activeTab === id
-                ? 'border-green-500 text-green-400'
-                : 'border-transparent text-[#333] hover:text-[#666]'
+                ? 'border-text-primary text-text-primary'
+                : 'border-transparent text-text-disabled hover:text-text-secondary'
             }`}
           >
-            {label}
+            [ {label} ]
           </button>
         ))}
       </div>

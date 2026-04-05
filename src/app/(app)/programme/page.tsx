@@ -69,7 +69,7 @@ export default async function ProgrammePage() {
                 >
                   <span>Week {weekNum}</span>
                   {isDeload && (
-                    <span className="text-xs bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded">Deload</span>
+                    <span className="text-xs bg-warning/20 text-warning px-1.5 py-0.5 rounded">Deload</span>
                   )}
                   {isCurrent && <span className="text-xs ml-auto">← You are here</span>}
                 </div>

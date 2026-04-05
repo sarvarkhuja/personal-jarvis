@@ -23,23 +23,13 @@ export async function toggleHabitCompletion(habitId: string, date: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: existing } = await supabase
-    .from('habit_completions')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('habit_id', habitId)
-    .eq('date', date)
-    .single()
+  const { error } = await supabase.rpc('toggle_habit_completion', {
+    p_user_id: user.id,
+    p_habit_id: habitId,
+    p_date: date,
+  })
 
-  if (existing) {
-    await supabase.from('habit_completions').delete().eq('id', existing.id)
-  } else {
-    await supabase.from('habit_completions').insert({
-      user_id: user.id,
-      habit_id: habitId,
-      date,
-    })
-  }
+  if (error) return { error: error.message }
 
   revalidatePath('/')
 }

@@ -45,7 +45,7 @@ export default async function DayViewPage({ params }: Props) {
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold">{day.name}</h1>
           {isDeload && (
-            <span className="text-xs bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full">
               Deload
             </span>
           )}

@@ -23,26 +23,14 @@ export async function toggleCheckin(focusAreaId: string, date: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  // Check if checkin already exists
-  const { data: existing } = await supabase
-    .from('focus_checkins')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('focus_area_id', focusAreaId)
-    .eq('date', date)
-    .single()
+  // Use the atomic Postgres RPC to toggle without race conditions
+  const { error } = await supabase.rpc('toggle_focus_checkin', {
+    p_user_id: user.id,
+    p_focus_area_id: focusAreaId,
+    p_date: date,
+  })
 
-  if (existing) {
-    // Remove checkin
-    await supabase.from('focus_checkins').delete().eq('id', existing.id)
-  } else {
-    // Add checkin
-    await supabase.from('focus_checkins').insert({
-      user_id: user.id,
-      focus_area_id: focusAreaId,
-      date,
-    })
-  }
+  if (error) return { error: error.message }
 
   revalidatePath('/')
 }

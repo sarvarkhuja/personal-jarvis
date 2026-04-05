@@ -13,7 +13,7 @@ function LoginMessage() {
   const searchParams = useSearchParams()
   const message = searchParams.get('message')
   if (!message) return null
-  return <p className="text-sm text-green-600">{message}</p>
+  return <p className="text-sm text-success">{message}</p>
 }
 
 export default function LoginPage() {

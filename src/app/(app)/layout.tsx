@@ -10,14 +10,14 @@ const spaceMono = Space_Mono({ subsets: ['latin'], variable: '--font-space-mono'
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className={cn(
-      "min-h-screen bg-black text-[#E8E8E8] antialiased selection:bg-red-500/30",
+      "min-h-screen bg-background text-foreground antialiased selection:bg-accent/20",
       doto.variable,
       spaceGrotesk.variable,
       spaceMono.variable
     )}>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset suppressHydrationWarning className="bg-black">
+        <SidebarInset suppressHydrationWarning className="bg-background">
           {children}
         </SidebarInset>
       </SidebarProvider>
