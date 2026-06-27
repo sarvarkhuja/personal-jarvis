@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { updateHabit } from '@/lib/actions/habits';
+import { hhmm } from '@/lib/domain/day-part';
 
 /**
  * Inline set / change / clear of a timer habit's scheduled time. Mirrors the
@@ -22,7 +23,7 @@ export function HabitTimeControl({
   scheduledTime: string | null;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [time, setTime] = React.useState(scheduledTime ?? '');
+  const [time, setTime] = React.useState(hhmm(scheduledTime));
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
 
@@ -31,7 +32,7 @@ export function HabitTimeControl({
   // useEffect trips the react-hooks/set-state-in-effect lint rule.
   function handleOpenChange(next: boolean) {
     if (next) {
-      setTime(scheduledTime ?? '');
+      setTime(hhmm(scheduledTime));
       setError(null);
     }
     setOpen(next);
@@ -59,7 +60,7 @@ export function HabitTimeControl({
             data-testid={`habit-time-${habitId}`}
             className="h-auto px-0 font-mono text-[10px] uppercase tracking-[0.08em] text-text-disabled hover:text-text-primary"
           >
-            ▶ {scheduledTime ?? 'Set time'}
+            ▶ {scheduledTime ? hhmm(scheduledTime) : 'Set time'}
           </Button>
         }
       />

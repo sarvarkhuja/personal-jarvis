@@ -21,6 +21,15 @@ function toMinutes(time: string): number {
   return h * 60 + m;
 }
 
+/**
+ * Normalize a stored time to "HH:MM". Postgres TIME serializes as "HH:MM:SS"
+ * via PostgREST; the UI and schema use "HH:MM", so trim any seconds. Returns
+ * '' for null/empty.
+ */
+export function hhmm(time: string | null): string {
+  return (time ?? '').slice(0, 5);
+}
+
 /** Bucket an "HH:MM" (or null) into a day-part. Night wraps midnight. */
 export function dayPartOf(time: string | null): DayPart {
   if (!time) return 'anytime';

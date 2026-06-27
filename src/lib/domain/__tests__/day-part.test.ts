@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayPartOf, groupHabitsByDayPart, DAY_PART_ORDER } from '../day-part';
+import { dayPartOf, groupHabitsByDayPart, hhmm, DAY_PART_ORDER } from '../day-part';
 
 describe('dayPartOf', () => {
   it('buckets boundary times correctly', () => {
@@ -71,5 +71,32 @@ describe('groupHabitsByDayPart', () => {
 
   it('exposes a canonical order constant ending in anytime', () => {
     expect(DAY_PART_ORDER[DAY_PART_ORDER.length - 1]).toBe('anytime');
+  });
+});
+
+describe('hhmm', () => {
+  it('trims Postgres TIME seconds to HH:MM', () => {
+    expect(hhmm('07:30:00')).toBe('07:30');
+  });
+  it('passes through an already-HH:MM value', () => {
+    expect(hhmm('07:30')).toBe('07:30');
+  });
+  it('returns empty string for null', () => {
+    expect(hhmm(null)).toBe('');
+  });
+});
+
+describe('day-part tolerates Postgres "HH:MM:SS" values', () => {
+  it('buckets a seconds-shaped time correctly', () => {
+    expect(dayPartOf('07:30:00')).toBe('morning');
+    expect(dayPartOf('22:00:00')).toBe('night');
+  });
+  it('sorts a section using seconds-shaped times', () => {
+    const items = [
+      { id: 'b', t: '09:30:00' },
+      { id: 'a', t: '06:00:00' },
+    ];
+    const [morning] = groupHabitsByDayPart(items, (h) => h.t);
+    expect(morning.items.map((i) => i.id)).toEqual(['a', 'b']);
   });
 });
