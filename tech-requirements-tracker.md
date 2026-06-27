@@ -1,5 +1,7 @@
 # TECHNICAL REQUIREMENTS DOCUMENT
+
 ## Personal Training Tracker App
+
 ### Stack: Next.js 14+ (App Router) · Supabase · Vercel
 
 ---
@@ -15,12 +17,14 @@ A mobile-first web application that allows the user to follow, log, and track th
 ## 2 — CORE FEATURES (MVP — v1.0)
 
 ### F1: Authentication
+
 - Email/password sign-up and login via Supabase Auth
 - OAuth optional (Google) for convenience
 - Protected routes — all app pages require authentication
 - Persistent session with Supabase SSR helpers (`@supabase/ssr`)
 
 ### F2: Programme Viewer
+
 - Display the full 12-week programme organized by Block → Week → Day → Exercises
 - Current week and current day highlighted automatically based on the programme start date
 - Each exercise shows: name, prescribed sets × reps, tempo, rest period, and coach notes (why selected)
@@ -28,6 +32,7 @@ A mobile-first web application that allows the user to follow, log, and track th
 - Block transitions (A→B→C) shown with exercise swap callouts
 
 ### F3: Workout Logger
+
 - User opens today's session and sees the prescribed exercises pre-loaded
 - For each exercise, the user logs per set:
   - **Weight (kg)** — numeric input with +/- stepper buttons (increment: 0.5 kg)
@@ -41,6 +46,7 @@ A mobile-first web application that allows the user to follow, log, and track th
 - "Finish Workout" button → saves the session and shows a summary card
 
 ### F4: Progressive Overload Tracker
+
 - After completing a week, the app suggests next week's weights based on the overload strategy:
   - If all prescribed reps were hit → suggest +2.5 kg (barbell) or +1 kg (dumbbell)
   - If reps were not hit → suggest same weight, aim for more reps
@@ -49,6 +55,7 @@ A mobile-first web application that allows the user to follow, log, and track th
 - History of weight used per exercise shown as a mini sparkline chart
 
 ### F5: Body Metrics Tracker
+
 - Daily log: **bodyweight** (kg), **date**, optional **notes**
 - Weekly average auto-calculated and displayed
 - Weight trend chart (line graph) with target line at 80 kg
@@ -56,6 +63,7 @@ A mobile-first web application that allows the user to follow, log, and track th
 - Progress photo upload (stored in Supabase Storage) — tagged by date, pose (front/side/back)
 
 ### F6: Nutrition Tracker (Simplified)
+
 - Daily log: **calories**, **protein (g)**, **carbs (g)**, **fat (g)**
 - Target line overlaid on the chart (3,100 kcal / 155P / 400C / 90F)
 - Weekly average macros displayed
@@ -63,6 +71,7 @@ A mobile-first web application that allows the user to follow, log, and track th
 - No meal-by-meal breakdown in v1 — just daily totals
 
 ### F7: Dashboard / Home
+
 - Today's workout card — tap to start logging
 - Current block / week / day indicator
 - This week's completion status (4 circles, filled when session logged)
@@ -71,6 +80,7 @@ A mobile-first web application that allows the user to follow, log, and track th
 - Next session preview
 
 ### F8: Analytics & Progress
+
 - **Strength progression charts** — line chart per exercise over 12 weeks (weight × reps)
 - **Volume load chart** — total kg lifted per session/week (sets × reps × weight)
 - **Bodyweight chart** — daily points + 7-day moving average + 80 kg target line
@@ -79,12 +89,14 @@ A mobile-first web application that allows the user to follow, log, and track th
 - **Block comparison** — compare average weights between Block A, B, and C
 
 ### F9: Rest Timer (Standalone Utility)
+
 - Accessible from any screen as a floating button
 - Configurable presets: 60s, 90s, 120s, 180s, custom
 - Vibration + sound alert on completion
 - Visible countdown overlay
 
 ### F10: Settings
+
 - Programme start date (used to calculate current week/day)
 - Unit preference (kg/lbs — default kg)
 - Rest timer default durations
@@ -96,23 +108,23 @@ A mobile-first web application that allows the user to follow, log, and track th
 
 ## 3 — TECH STACK DETAILS
 
-| Layer | Technology | Version | Notes |
-|-------|-----------|---------|-------|
-| **Framework** | Next.js (App Router) | 14.x or 15.x | Server Components by default, Client Components where interactivity needed |
-| **Language** | TypeScript | 5.x | Strict mode enabled |
-| **Styling** | Tailwind CSS | 3.x or 4.x | Mobile-first, dark mode support |
-| **UI Components** | shadcn/ui | Latest | Radix primitives + Tailwind styling, accessible by default |
-| **Charts** | Recharts or Chart.js | Latest | For strength/bodyweight/volume charts |
-| **State Management** | React hooks + URL state | — | No Redux needed; use `useState`, `useReducer`, `nuqs` for URL params |
-| **Forms** | React Hook Form + Zod | Latest | Schema validation on client and server |
-| **Backend/DB** | Supabase | Latest | Postgres DB, Auth, Storage, Realtime (optional) |
-| **ORM/Query** | Supabase JS Client | `@supabase/supabase-js` v2 | Direct queries; consider Drizzle ORM if schema grows complex |
-| **Auth** | Supabase Auth | via `@supabase/ssr` | Server-side session, middleware-protected routes |
-| **File Storage** | Supabase Storage | — | Progress photos, exported files |
-| **Hosting** | Vercel | — | Auto-deploy from GitHub, preview deploys on PRs |
-| **CI/CD** | Vercel + GitHub Actions | — | Lint, type-check, test on PR; deploy on merge to main |
-| **Analytics** | Vercel Analytics | — | Core Web Vitals, page views |
-| **PWA** | next-pwa or Serwist | — | Installable on phone, offline workout logging |
+| Layer                | Technology              | Version                    | Notes                                                                      |
+| -------------------- | ----------------------- | -------------------------- | -------------------------------------------------------------------------- |
+| **Framework**        | Next.js (App Router)    | 14.x or 15.x               | Server Components by default, Client Components where interactivity needed |
+| **Language**         | TypeScript              | 5.x                        | Strict mode enabled                                                        |
+| **Styling**          | Tailwind CSS            | 3.x or 4.x                 | Mobile-first, dark mode support                                            |
+| **UI Components**    | shadcn/ui               | Latest                     | Radix primitives + Tailwind styling, accessible by default                 |
+| **Charts**           | Recharts or Chart.js    | Latest                     | For strength/bodyweight/volume charts                                      |
+| **State Management** | React hooks + URL state | —                          | No Redux needed; use `useState`, `useReducer`, `nuqs` for URL params       |
+| **Forms**            | React Hook Form + Zod   | Latest                     | Schema validation on client and server                                     |
+| **Backend/DB**       | Supabase                | Latest                     | Postgres DB, Auth, Storage, Realtime (optional)                            |
+| **ORM/Query**        | Supabase JS Client      | `@supabase/supabase-js` v2 | Direct queries; consider Drizzle ORM if schema grows complex               |
+| **Auth**             | Supabase Auth           | via `@supabase/ssr`        | Server-side session, middleware-protected routes                           |
+| **File Storage**     | Supabase Storage        | —                          | Progress photos, exported files                                            |
+| **Hosting**          | Vercel                  | —                          | Auto-deploy from GitHub, preview deploys on PRs                            |
+| **CI/CD**            | Vercel + GitHub Actions | —                          | Lint, type-check, test on PR; deploy on merge to main                      |
+| **Analytics**        | Vercel Analytics        | —                          | Core Web Vitals, page views                                                |
+| **PWA**              | next-pwa or Serwist     | —                          | Installable on phone, offline workout logging                              |
 
 ---
 
@@ -420,14 +432,14 @@ src/
 
 ### 5.2 — Key Architectural Decisions
 
-| Decision | Choice | Reasoning |
-|----------|--------|-----------|
-| **Rendering** | Server Components default, Client Components for interactive UI | Reduces JS bundle; workout logger, timers, and charts are client-side |
-| **Data fetching** | Server Components use Supabase server client; mutations use Server Actions | No API routes needed for CRUD; Server Actions handle form submissions |
-| **Offline support** | Service Worker (PWA) + IndexedDB queue | User may be in a gym basement with no signal; log sets offline, sync when back online |
-| **Programme data** | Seeded into Supabase via a one-time seed script | Programme is static; stored in DB so it can be queried relationally with logs |
-| **Real-time** | Not needed for v1 | Single user; no collaborative features |
-| **Image optimization** | Next.js `<Image>` + Supabase Storage transforms | Progress photos resized on upload; thumbnails generated |
+| Decision               | Choice                                                                     | Reasoning                                                                             |
+| ---------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Rendering**          | Server Components default, Client Components for interactive UI            | Reduces JS bundle; workout logger, timers, and charts are client-side                 |
+| **Data fetching**      | Server Components use Supabase server client; mutations use Server Actions | No API routes needed for CRUD; Server Actions handle form submissions                 |
+| **Offline support**    | Service Worker (PWA) + IndexedDB queue                                     | User may be in a gym basement with no signal; log sets offline, sync when back online |
+| **Programme data**     | Seeded into Supabase via a one-time seed script                            | Programme is static; stored in DB so it can be queried relationally with logs         |
+| **Real-time**          | Not needed for v1                                                          | Single user; no collaborative features                                                |
+| **Image optimization** | Next.js `<Image>` + Supabase Storage transforms                            | Progress photos resized on upload; thumbnails generated                               |
 
 ---
 
@@ -467,17 +479,18 @@ actions/
 ## 7 — PWA & OFFLINE STRATEGY
 
 ### Why PWA is Critical
+
 The user is in a gym. Phone signal may be weak. The app must work offline for the core workflow: logging sets.
 
 ### Implementation
 
-| Concern | Solution |
-|---------|----------|
-| **Installable** | Web manifest with icons, `display: standalone`, theme color |
+| Concern             | Solution                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Installable**     | Web manifest with icons, `display: standalone`, theme color                                                   |
 | **Offline logging** | Service Worker caches the app shell; workout logging writes to IndexedDB first, syncs to Supabase when online |
-| **Sync** | Background Sync API or manual sync button; conflict resolution: last-write-wins (single user) |
-| **Cached pages** | Dashboard, current workout, programme viewer cached via service worker |
-| **Timer** | Rest timer runs entirely client-side; works offline; uses Web Vibration API for alerts |
+| **Sync**            | Background Sync API or manual sync button; conflict resolution: last-write-wins (single user)                 |
+| **Cached pages**    | Dashboard, current workout, programme viewer cached via service worker                                        |
+| **Timer**           | Rest timer runs entirely client-side; works offline; uses Web Vibration API for alerts                        |
 
 ### Service Worker Caching Strategy
 
@@ -496,46 +509,49 @@ Stale-while-revalidate: Programme data (rarely changes)
 ```typescript
 // lib/utils/overload.ts
 interface OverloadSuggestion {
-  suggestedWeightKg: number;
-  strategy: 'increase_weight' | 'increase_reps' | 'deload' | 'same_weight';
-  reason: string;
+	suggestedWeightKg: number;
+	strategy: "increase_weight" | "increase_reps" | "deload" | "same_weight";
+	reason: string;
 }
 
 function calculateOverload(
-  lastSessionSets: SetLog[],
-  prescribedRepsMin: number,
-  prescribedRepsMax: number,
-  isDeloadWeek: boolean,
-  equipmentType: 'barbell' | 'dumbbell' | 'machine'
+	lastSessionSets: SetLog[],
+	prescribedRepsMin: number,
+	prescribedRepsMax: number,
+	isDeloadWeek: boolean,
+	equipmentType: "barbell" | "dumbbell" | "machine",
 ): OverloadSuggestion {
-  if (isDeloadWeek) {
-    return {
-      suggestedWeightKg: lastSessionSets[0].weight_kg * 0.6,
-      strategy: 'deload',
-      reason: 'Deload week: 60% of working weight'
-    };
-  }
+	if (isDeloadWeek) {
+		return {
+			suggestedWeightKg: lastSessionSets[0].weight_kg * 0.6,
+			strategy: "deload",
+			reason: "Deload week: 60% of working weight",
+		};
+	}
 
-  const allSetsHitMaxReps = lastSessionSets
-    .filter(s => s.status === 'completed')
-    .every(s => s.reps_completed >= prescribedRepsMax);
+	const allSetsHitMaxReps = lastSessionSets
+		.filter((s) => s.status === "completed")
+		.every((s) => s.reps_completed >= prescribedRepsMax);
 
-  if (allSetsHitMaxReps) {
-    const increment = equipmentType === 'barbell' ? 2.5 
-                    : equipmentType === 'dumbbell' ? 1.0 
-                    : 2.5;
-    return {
-      suggestedWeightKg: lastSessionSets[0].weight_kg + increment,
-      strategy: 'increase_weight',
-      reason: `All sets hit ${prescribedRepsMax} reps → +${increment} kg`
-    };
-  }
+	if (allSetsHitMaxReps) {
+		const increment =
+			equipmentType === "barbell"
+				? 2.5
+				: equipmentType === "dumbbell"
+					? 1.0
+					: 2.5;
+		return {
+			suggestedWeightKg: lastSessionSets[0].weight_kg + increment,
+			strategy: "increase_weight",
+			reason: `All sets hit ${prescribedRepsMax} reps → +${increment} kg`,
+		};
+	}
 
-  return {
-    suggestedWeightKg: lastSessionSets[0].weight_kg,
-    strategy: 'increase_reps',
-    reason: `Aim for ${prescribedRepsMax} reps on all sets before adding weight`
-  };
+	return {
+		suggestedWeightKg: lastSessionSets[0].weight_kg,
+		strategy: "increase_reps",
+		reason: `Aim for ${prescribedRepsMax} reps on all sets before adding weight`,
+	};
 }
 ```
 
@@ -544,26 +560,28 @@ function calculateOverload(
 ```typescript
 // lib/utils/pr-detector.ts
 function checkForPR(
-  exerciseName: string,
-  weightKg: number,
-  reps: number,
-  existingPRs: PersonalRecord[]
-): { isPR: boolean; type: 'weight' | '1rm_estimate' | null } {
-  const estimated1RM = weightKg * (1 + reps / 30); // Epley formula
-  
-  const existingBest = existingPRs.find(p => p.exercise_name === exerciseName);
-  
-  if (!existingBest) return { isPR: true, type: 'weight' };
-  
-  if (estimated1RM > (existingBest.estimated_1rm || 0)) {
-    return { isPR: true, type: '1rm_estimate' };
-  }
-  
-  if (weightKg > existingBest.weight_kg) {
-    return { isPR: true, type: 'weight' };
-  }
-  
-  return { isPR: false, type: null };
+	exerciseName: string,
+	weightKg: number,
+	reps: number,
+	existingPRs: PersonalRecord[],
+): { isPR: boolean; type: "weight" | "1rm_estimate" | null } {
+	const estimated1RM = weightKg * (1 + reps / 30); // Epley formula
+
+	const existingBest = existingPRs.find(
+		(p) => p.exercise_name === exerciseName,
+	);
+
+	if (!existingBest) return { isPR: true, type: "weight" };
+
+	if (estimated1RM > (existingBest.estimated_1rm || 0)) {
+		return { isPR: true, type: "1rm_estimate" };
+	}
+
+	if (weightKg > existingBest.weight_kg) {
+		return { isPR: true, type: "weight" };
+	}
+
+	return { isPR: false, type: null };
 }
 ```
 
@@ -572,29 +590,29 @@ function checkForPR(
 ```typescript
 // lib/utils/week-calculator.ts
 function getCurrentProgrammePosition(startDate: Date): {
-  weekNumber: number;       // 1–12
-  blockName: string;        // 'A', 'B', 'C'
-  isDeloadWeek: boolean;
-  dayOfWeek: number;        // 1–7
-  isTrainingDay: boolean;   // Mon, Tue, Thu, Fri = true
+	weekNumber: number; // 1–12
+	blockName: string; // 'A', 'B', 'C'
+	isDeloadWeek: boolean;
+	dayOfWeek: number; // 1–7
+	isTrainingDay: boolean; // Mon, Tue, Thu, Fri = true
 } {
-  const now = new Date();
-  const diffDays = Math.floor(
-    (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  const weekNumber = Math.min(Math.floor(diffDays / 7) + 1, 12);
-  const blockName = weekNumber <= 4 ? 'A' : weekNumber <= 8 ? 'B' : 'C';
-  const isDeloadWeek = weekNumber === 4 || weekNumber === 8;
-  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
-  const trainingDays = [1, 2, 4, 5]; // Mon, Tue, Thu, Fri
-  
-  return {
-    weekNumber,
-    blockName,
-    isDeloadWeek,
-    dayOfWeek,
-    isTrainingDay: trainingDays.includes(dayOfWeek)
-  };
+	const now = new Date();
+	const diffDays = Math.floor(
+		(now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+	);
+	const weekNumber = Math.min(Math.floor(diffDays / 7) + 1, 12);
+	const blockName = weekNumber <= 4 ? "A" : weekNumber <= 8 ? "B" : "C";
+	const isDeloadWeek = weekNumber === 4 || weekNumber === 8;
+	const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+	const trainingDays = [1, 2, 4, 5]; // Mon, Tue, Thu, Fri
+
+	return {
+		weekNumber,
+		blockName,
+		isDeloadWeek,
+		dayOfWeek,
+		isTrainingDay: trainingDays.includes(dayOfWeek),
+	};
 }
 ```
 
@@ -604,17 +622,18 @@ function getCurrentProgrammePosition(startDate: Date): {
 
 ### 9.1 — Design Principles
 
-| Principle | Implementation |
-|-----------|----------------|
-| **Mobile-first** | Designed for one-handed phone use in the gym; large tap targets (min 44px); bottom navigation |
-| **Dark mode default** | Easier on eyes in gym lighting; toggle available |
-| **Minimal taps to log** | Logging a set should take ≤3 taps: weight → reps → confirm |
-| **Glanceable** | Dashboard shows status at a glance; use color coding (green = on track, yellow = behind, red = missed) |
-| **Fast** | App shell cached; page transitions <200ms; no loading spinners for cached data |
+| Principle               | Implementation                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Mobile-first**        | Designed for one-handed phone use in the gym; large tap targets (min 44px); bottom navigation          |
+| **Dark mode default**   | Easier on eyes in gym lighting; toggle available                                                       |
+| **Minimal taps to log** | Logging a set should take ≤3 taps: weight → reps → confirm                                             |
+| **Glanceable**          | Dashboard shows status at a glance; use color coding (green = on track, yellow = behind, red = missed) |
+| **Fast**                | App shell cached; page transitions <200ms; no loading spinners for cached data                         |
 
 ### 9.2 — Key Screens (Wireframe Descriptions)
 
 **Dashboard (Home)**
+
 ```
 ┌──────────────────────────────────┐
 │  WEEK 3 of 12 · Block A          │
@@ -638,6 +657,7 @@ function getCurrentProgrammePosition(startDate: Date): {
 ```
 
 **Workout Logger (Active Session)**
+
 ```
 ┌──────────────────────────────────┐
 │  ← Back          Session: 42:15   │
@@ -668,6 +688,7 @@ function getCurrentProgrammePosition(startDate: Date): {
 ### 9.3 — Navigation
 
 **Bottom Tab Bar (Mobile)**
+
 ```
 [ Home ] [ Workout ] [ Programme ] [ Body ] [ More ]
 ```
@@ -678,16 +699,16 @@ function getCurrentProgrammePosition(startDate: Date): {
 
 ## 10 — NON-FUNCTIONAL REQUIREMENTS
 
-| Requirement | Target | How |
-|-------------|--------|-----|
-| **Performance** | LCP < 1.5s, FID < 100ms, CLS < 0.1 | Server Components, image optimization, code splitting |
-| **Offline** | Core workout logging works without network | PWA + IndexedDB queue |
-| **Accessibility** | WCAG 2.1 AA | shadcn/ui (Radix primitives), semantic HTML, contrast ratios |
-| **Security** | All user data isolated | Supabase RLS policies, server-side auth checks |
-| **Data integrity** | No lost workout data | Optimistic UI + local-first writes + background sync |
-| **Responsive** | Usable on 320px–1440px | Tailwind breakpoints, mobile-first CSS |
-| **Bundle size** | JS < 150 KB (first load) | Dynamic imports for charts, tree-shaking |
-| **Uptime** | 99.9% | Vercel edge network + Supabase managed infra |
+| Requirement        | Target                                     | How                                                          |
+| ------------------ | ------------------------------------------ | ------------------------------------------------------------ |
+| **Performance**    | LCP < 1.5s, FID < 100ms, CLS < 0.1         | Server Components, image optimization, code splitting        |
+| **Offline**        | Core workout logging works without network | PWA + IndexedDB queue                                        |
+| **Accessibility**  | WCAG 2.1 AA                                | shadcn/ui (Radix primitives), semantic HTML, contrast ratios |
+| **Security**       | All user data isolated                     | Supabase RLS policies, server-side auth checks               |
+| **Data integrity** | No lost workout data                       | Optimistic UI + local-first writes + background sync         |
+| **Responsive**     | Usable on 320px–1440px                     | Tailwind breakpoints, mobile-first CSS                       |
+| **Bundle size**    | JS < 150 KB (first load)                   | Dynamic imports for charts, tree-shaking                     |
+| **Uptime**         | 99.9%                                      | Vercel edge network + Supabase managed infra                 |
 
 ---
 
@@ -698,18 +719,18 @@ function getCurrentProgrammePosition(startDate: Date): {
 ```
 Environment Variables (Vercel Dashboard):
 ├── NEXT_PUBLIC_SUPABASE_URL        = https://xxxxx.supabase.co
-├── NEXT_PUBLIC_SUPABASE_ANON_KEY   = eyJ...
+├── SUPABASE_ANON_KEY   = eyJ...
 ├── SUPABASE_SERVICE_ROLE_KEY       = eyJ... (server-only, for seed scripts)
 └── NEXT_PUBLIC_APP_URL             = https://your-app.vercel.app
 ```
 
 ### Branch Strategy
 
-| Branch | Purpose | Deploy |
-|--------|---------|--------|
-| `main` | Production | Auto-deploy to production URL |
-| `develop` | Staging/integration | Preview deploy |
-| `feature/*` | Feature branches | Preview deploy per PR |
+| Branch      | Purpose             | Deploy                        |
+| ----------- | ------------------- | ----------------------------- |
+| `main`      | Production          | Auto-deploy to production URL |
+| `develop`   | Staging/integration | Preview deploy                |
+| `feature/*` | Feature branches    | Preview deploy per PR         |
 
 ### CI Pipeline (on PR to main)
 
@@ -725,17 +746,17 @@ Environment Variables (Vercel Dashboard):
 
 ## 12 — DEVELOPMENT PHASES
 
-| Phase | Scope | Est. Time |
-|-------|-------|-----------|
-| **Phase 1** | Auth + Dashboard + Programme Viewer + DB schema + seed data | 1 week |
-| **Phase 2** | Workout Logger (core loop: start session → log sets → finish) + rest timer | 1.5 weeks |
-| **Phase 3** | Progressive overload logic + PR detection + weight suggestions | 0.5 week |
-| **Phase 4** | Body metrics + nutrition logging | 1 week |
-| **Phase 5** | Analytics & charts (strength, volume, bodyweight, muscle group) | 1 week |
-| **Phase 6** | PWA (offline support, installable, background sync) | 1 week |
-| **Phase 7** | Progress photos (upload, gallery, storage) | 0.5 week |
-| **Phase 8** | Polish, settings, export, testing, performance optimization | 1 week |
-| **Total** | | **~7.5 weeks** |
+| Phase       | Scope                                                                      | Est. Time      |
+| ----------- | -------------------------------------------------------------------------- | -------------- |
+| **Phase 1** | Auth + Dashboard + Programme Viewer + DB schema + seed data                | 1 week         |
+| **Phase 2** | Workout Logger (core loop: start session → log sets → finish) + rest timer | 1.5 weeks      |
+| **Phase 3** | Progressive overload logic + PR detection + weight suggestions             | 0.5 week       |
+| **Phase 4** | Body metrics + nutrition logging                                           | 1 week         |
+| **Phase 5** | Analytics & charts (strength, volume, bodyweight, muscle group)            | 1 week         |
+| **Phase 6** | PWA (offline support, installable, background sync)                        | 1 week         |
+| **Phase 7** | Progress photos (upload, gallery, storage)                                 | 0.5 week       |
+| **Phase 8** | Polish, settings, export, testing, performance optimization                | 1 week         |
+| **Total**   |                                                                            | **~7.5 weeks** |
 
 ---
 

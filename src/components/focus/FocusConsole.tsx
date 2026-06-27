@@ -204,17 +204,6 @@ export function FocusConsole({
               [ ARM SESSION ]
             </div>
 
-            <Field label="Intent" htmlFor="focus-intent">
-              <input
-                id="focus-intent"
-                data-testid="focus-intent"
-                placeholder="What you're focusing on"
-                value={intent}
-                onChange={(e) => setIntent(e.target.value)}
-                className="w-full border-b border-border-visible bg-transparent py-2 font-mono text-[13px] text-text-primary transition-colors placeholder:text-text-secondary/60 focus:border-text-primary focus:outline-none"
-              />
-            </Field>
-
             <Field label="Linked goal" htmlFor="focus-goal">
               <select
                 id="focus-goal"
