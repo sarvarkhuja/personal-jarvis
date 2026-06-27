@@ -15,6 +15,7 @@ import {
 } from '@/lib/utils/focus-metrics';
 import type { FrequencyJson } from '@/lib/schemas/habits';
 import {
+  bodyWeightSummary,
   monthSpendSummary,
   pillWeekAdherence,
 } from '@/lib/domain/home-overview';
@@ -24,9 +25,18 @@ import { UpcomingEventsWidget } from '@/components/today/UpcomingEventsWidget';
 import { ExpensesGlance } from '@/components/home/ExpensesGlance';
 import { FocusGlance } from '@/components/home/FocusGlance';
 import { PillsGlance } from '@/components/home/PillsGlance';
+import { LiftsGlance } from '@/components/home/LiftsGlance';
+import { BodyWeightGlance } from '@/components/home/BodyWeightGlance';
+import {
+  weekStart,
+  buildLiftRows,
+  type LiftEntry,
+} from '@/lib/utils/lift-metrics';
 
 const HABIT_WINDOW_DAYS = 30;
 const FOCUS_WINDOW_MS = 70 * 24 * 60 * 60 * 1000;
+const LIFT_WEEKS = 2; // current + previous week, enough for the weekly trend
+const WEIGHT_TREND_DAYS = 90;
 
 export default async function HomePage() {
   const userId = await requireUserId();
@@ -34,7 +44,7 @@ export default async function HomePage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, timezone')
+    .select('display_name, timezone, target_weight_kg')
     .eq('id', userId)
     .single();
   const displayName =
@@ -54,6 +64,9 @@ export default async function HomePage() {
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   const sixMonthsAgoStr = sixMonthsAgo.toISOString().slice(0, 10);
   const focusSinceIso = new Date(now.getTime() - FOCUS_WINDOW_MS).toISOString();
+  const thisMonday = weekStart(today);
+  const liftSince = addDaysISO(thisMonday, -7 * (LIFT_WEEKS - 1));
+  const weightSince = addDaysISO(today, -(WEIGHT_TREND_DAYS - 1));
 
   const [
     habitsResult,
@@ -64,6 +77,8 @@ export default async function HomePage() {
     medicationLogsResult,
     eventsResult,
     focusSessionsResult,
+    weeklyLiftsResult,
+    bodyMetricsResult,
   ] = await Promise.all([
     supabase
       .from('habits')
@@ -109,6 +124,16 @@ export default async function HomePage() {
       .eq('user_id', userId)
       .gte('started_at', focusSinceIso)
       .order('started_at', { ascending: false }),
+    supabase
+      .from('weekly_lifts')
+      .select('exercise, week_start, weight_kg, reps')
+      .eq('user_id', userId)
+      .gte('week_start', liftSince),
+    supabase
+      .from('body_metrics')
+      .select('date, weight_kg')
+      .eq('user_id', userId)
+      .gte('date', weightSince),
   ]);
 
   // ── Habit consistency hero ──────────────────────────────────────────────
@@ -166,6 +191,41 @@ export default async function HomePage() {
     log_date: string;
   }>;
   const pills = pillWeekAdherence(medications, medicationLogs, today);
+
+  // ── Lifts (big-5 this week) ─────────────────────────────────────────────────
+  const weeklyLifts = (weeklyLiftsResult.data ?? []) as Array<{
+    exercise: LiftEntry['exercise'];
+    week_start: string;
+    weight_kg: number | string | null;
+    reps: number;
+  }>;
+  const liftEntries: LiftEntry[] = weeklyLifts.map((l) => ({
+    exercise: l.exercise,
+    week_start: l.week_start,
+    weight_kg: l.weight_kg != null ? Number(l.weight_kg) : null,
+    reps: l.reps,
+  }));
+  const liftRows = buildLiftRows(liftEntries, today, LIFT_WEEKS);
+  const liftsLoggedCount = liftRows.filter((r) => r.current != null).length;
+
+  // ── Body weight (→ target) ──────────────────────────────────────────────────
+  const bodyMetrics = (bodyMetricsResult.data ?? []) as Array<{
+    date: string;
+    weight_kg: number | string | null;
+  }>;
+  const targetWeight =
+    (profile as { target_weight_kg?: number | string | null } | null)?.target_weight_kg != null
+      ? Number((profile as { target_weight_kg?: number | string | null }).target_weight_kg)
+      : null;
+  const bodyWeight = bodyWeightSummary(
+    bodyMetrics.map((b) => ({
+      date: b.date,
+      weight_kg: b.weight_kg != null ? Number(b.weight_kg) : null,
+    })),
+    targetWeight,
+    today,
+    WEIGHT_TREND_DAYS,
+  );
 
   // ── Events (today + tomorrow agenda) ────────────────────────────────────────
   const upcomingEvents = (eventsResult.data ?? []) as Array<{
@@ -253,6 +313,8 @@ export default async function HomePage() {
         <ExpensesGlance summary={spend} />
         <FocusGlance week={focusMetrics.week} streakCount={focusMetrics.streak.count} />
         <PillsGlance adherence={pills} />
+        <LiftsGlance rows={liftRows} loggedCount={liftsLoggedCount} />
+        <BodyWeightGlance summary={bodyWeight} days={WEIGHT_TREND_DAYS} />
         <UpcomingEventsWidget
           todayEvents={todayEvents}
           tomorrowEvents={tomorrowEvents}
