@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Dumbbell, User, LogOut, Sun, ListChecks, Pill, Target, CalendarDays, Timer, Wallet, Settings } from 'lucide-react'
@@ -13,6 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from '@/components/ui/sidebar'
 
 const NAV_ITEMS = [
@@ -31,6 +33,12 @@ const NAV_ITEMS = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { setOpenMobile } = useSidebar()
+
+  // Close the mobile drawer after navigating to a new route.
+  useEffect(() => {
+    setOpenMobile(false)
+  }, [pathname, setOpenMobile])
 
   return (
     <Sidebar collapsible="icon">

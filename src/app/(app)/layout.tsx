@@ -1,5 +1,5 @@
 import { Doto, Space_Grotesk, Space_Mono } from 'next/font/google'
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/layout/AppSidebar'
 import { ShortcutsProvider } from '@/components/keyboard/ShortcutsProvider'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset suppressHydrationWarning className="bg-background">
+          {/* Mobile-only menu trigger — opens the off-canvas sidebar drawer.
+              Hidden at md+, where the persistent rail is always visible. */}
+          <SidebarTrigger
+            className="fixed left-3 top-3 z-50 size-9 border border-sidebar-border bg-background/80 text-foreground backdrop-blur-md md:hidden"
+          />
           {children}
         </SidebarInset>
       </SidebarProvider>
