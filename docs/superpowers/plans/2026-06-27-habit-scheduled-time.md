@@ -17,6 +17,8 @@
 - **Headers:** plain mono caps, no glyphs/emoji.
 - **TDD, frequent commits, DRY, YAGNI.** Run `npm run test:unit` (Vitest), `npm run typecheck`, `npm run lint` as specified.
 - **Migration safety:** the `emoji` column is dropped (Task 7) only after all readers are removed (Tasks 3–6). The `scheduled_time` column is added (Task 2) before any code selects/persists it.
+- **Baseline (working tree has unrelated in-progress work):** `npm run typecheck` is **clean** and `npm run test:run` is **173 passing** — both must stay fully green. `npm run lint` already exits non-zero with **1 pre-existing error** (`src/components/theme-toggle.tsx:13` — `react-hooks/set-state-in-effect`) and **9 pre-existing warnings** (e.g. `WeeklyLiftsHero.tsx` unused `Trend`). These are NOT in scope. Any lint step's pass criterion is: **no NEW errors or warnings beyond this documented baseline.** In particular, do not introduce any `react-hooks/set-state-in-effect` error — never call a state setter directly inside `useEffect`.
+- **Commits add only the task's named files.** The working tree carries unrelated uncommitted edits; `git add` exactly the files listed in each task's commit step, never `git add -A` (except Task 8's test-fix commit, which is scoped to spec files).
 
 ---
 
@@ -562,9 +564,16 @@ export function HabitTimeControl({
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
 
-  React.useEffect(() => {
-    setTime(scheduledTime ?? '');
-  }, [scheduledTime]);
+  // Reset the editable value to the current time whenever the popover opens.
+  // Done in the open handler (not a useEffect): calling a state setter inside
+  // useEffect trips the react-hooks/set-state-in-effect lint rule.
+  function handleOpenChange(next: boolean) {
+    if (next) {
+      setTime(scheduledTime ?? '');
+      setError(null);
+    }
+    setOpen(next);
+  }
 
   function save(next: string | null) {
     setError(null);
@@ -579,7 +588,7 @@ export function HabitTimeControl({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         render={
           <Button
@@ -771,8 +780,11 @@ Replace the habits list `<div ...>` block (lines 141–163, the `data-testid="ha
 
 - [ ] **Step 4: Typecheck + lint**
 
-Run: `npm run typecheck && npm run lint`
-Expected: PASS — no `emoji` references remain in `habits/page.tsx` or `HabitCard.tsx`.
+Run: `npm run typecheck`
+Expected: PASS (clean).
+
+Run: `npm run lint`
+Expected: lint exits non-zero **only** because of the documented baseline (`theme-toggle.tsx:13` error + 9 pre-existing warnings). Confirm NO new problems reference `habits/page.tsx` or `HabitCard.tsx`.
 
 - [ ] **Step 5: Commit**
 
@@ -847,8 +859,11 @@ In `src/components/plans/MonthGrid.tsx`:
 Run: `grep -rn "\.emoji\|emoji:" src/app/\(app\)/habits src/app/\(app\)/today src/app/\(app\)/plans src/components/habits src/components/today src/components/plans`
 Expected: no matches referencing habit emoji (the expense-category and dead-dashboard files are out of scope and not in these paths).
 
-Run: `npm run typecheck && npm run lint`
-Expected: PASS.
+Run: `npm run typecheck`
+Expected: PASS (clean).
+
+Run: `npm run lint`
+Expected: lint exits non-zero **only** because of the documented baseline (`theme-toggle.tsx:13` error + 9 warnings). Confirm NO new problems reference the five files edited in this task.
 
 - [ ] **Step 7: Commit**
 
@@ -923,8 +938,19 @@ Update the specs the sweep surfaced so they match the new form (no emoji field) 
 
 - [ ] **Step 3: Run the full unit suite, typecheck, lint, build**
 
-Run: `npm run test:unit && npm run typecheck && npm run lint && npm run build`
-Expected: all green. The build must not error on the dropped column (verified: no live reader remains).
+Run each separately (do not chain with `&&` — lint exits non-zero on the pre-existing baseline error and would abort the chain):
+
+Run: `npm run test:unit`
+Expected: all passing (≥ 173 baseline + the new day-part and schema tests).
+
+Run: `npm run typecheck`
+Expected: PASS (clean).
+
+Run: `npm run lint`
+Expected: non-zero **only** from the documented baseline (`theme-toggle.tsx:13` + 9 warnings); no new problems from this branch's files.
+
+Run: `npm run build`
+Expected: build succeeds. Must not error on the dropped `emoji` column (verified: no live reader remains).
 
 - [ ] **Step 4: Manual smoke (dev server)**
 
