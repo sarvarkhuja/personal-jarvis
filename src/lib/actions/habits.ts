@@ -16,6 +16,7 @@ import {
   type LogHabitInput,
   type UnlogHabitInput,
   type UpdateHabitInput,
+  type HabitKind,
 } from '@/lib/schemas/habits';
 
 async function authedClient() {
@@ -58,7 +59,8 @@ export async function createHabit(input: CreateHabitInput) {
       unit: parsed.unit ?? null,
       frequency_json: parsed.frequency,
       color: parsed.color,
-      emoji: parsed.emoji ?? null,
+      scheduled_time:
+        parsed.kind === 'timer' ? (parsed.scheduled_time ?? null) : null,
     })
     .select()
     .single();
@@ -71,6 +73,7 @@ export async function createHabit(input: CreateHabitInput) {
   }
   revalidatePath('/habits');
   revalidatePath('/today');
+  revalidatePath('/');
   return data;
 }
 
@@ -85,7 +88,20 @@ export async function updateHabit(input: UpdateHabitInput) {
   if (parsed.unit !== undefined) patch.unit = parsed.unit;
   if (parsed.frequency !== undefined) patch.frequency_json = parsed.frequency;
   if (parsed.color !== undefined) patch.color = parsed.color;
-  if (parsed.emoji !== undefined) patch.emoji = parsed.emoji;
+  if (parsed.scheduled_time !== undefined) {
+    let effectiveKind: HabitKind | undefined = parsed.kind;
+    if (effectiveKind === undefined) {
+      const { data: current } = await supabase
+        .from('habits')
+        .select('kind')
+        .eq('id', parsed.id)
+        .eq('user_id', user.id)
+        .single();
+      effectiveKind = (current as { kind?: HabitKind } | null)?.kind;
+    }
+    patch.scheduled_time =
+      effectiveKind === 'timer' ? parsed.scheduled_time : null;
+  }
 
   const { data, error } = await supabase
     .from('habits')
@@ -98,6 +114,7 @@ export async function updateHabit(input: UpdateHabitInput) {
   if (error) throw error;
   revalidatePath('/habits');
   revalidatePath('/today');
+  revalidatePath('/');
   return data;
 }
 
@@ -119,6 +136,7 @@ export async function deleteHabit(input: DeleteHabitInput) {
   }
   revalidatePath('/habits');
   revalidatePath('/today');
+  revalidatePath('/');
 }
 
 export async function archiveHabit(input: ArchiveHabitInput) {
@@ -137,6 +155,7 @@ export async function archiveHabit(input: ArchiveHabitInput) {
   if (error) throw error;
   revalidatePath('/habits');
   revalidatePath('/today');
+  revalidatePath('/');
 }
 
 export async function logHabit(input: LogHabitInput) {
@@ -146,6 +165,32 @@ export async function logHabit(input: LogHabitInput) {
   const tz = await getUserTimezone(supabase, user.id);
   const loggedAtIso = parsed.logged_at ?? new Date().toISOString();
   const log_date = toUserDate(loggedAtIso, tz);
+
+  // `check` habits are binary per day, so an accidental double-tap must not
+  // insert a duplicate row. `counter` (+1) and `timer` (one row per focus
+  // session) legitimately log multiple times a day — only short-circuit check.
+  const { data: habit } = await supabase
+    .from('habits')
+    .select('kind')
+    .eq('id', parsed.habit_id)
+    .eq('user_id', user.id)
+    .single();
+  if ((habit as { kind?: string } | null)?.kind === 'check') {
+    const { data: existing } = await supabase
+      .from('habit_logs')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('habit_id', parsed.habit_id)
+      .eq('log_date', log_date)
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      revalidatePath('/habits');
+      revalidatePath('/today');
+      revalidatePath('/');
+      return existing;
+    }
+  }
 
   const { data, error } = await supabase
     .from('habit_logs')
@@ -163,6 +208,7 @@ export async function logHabit(input: LogHabitInput) {
   if (error) throw error;
   revalidatePath('/habits');
   revalidatePath('/today');
+  revalidatePath('/');
   return data;
 }
 
@@ -179,4 +225,5 @@ export async function unlogHabit(input: UnlogHabitInput) {
   if (error) throw error;
   revalidatePath('/habits');
   revalidatePath('/today');
+  revalidatePath('/');
 }

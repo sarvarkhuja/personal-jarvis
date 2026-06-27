@@ -6,7 +6,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-  CreateHabitSchema,
+  CreateHabitFields,
   type CreateHabitInput,
 } from '@/lib/schemas/habits';
 import { ALL_DAYS, frequencyFromDays } from '@/lib/domain/habit-frequency';
@@ -34,11 +34,16 @@ const KIND_OPTIONS = [
   { value: 'timer', label: 'Timer (track elapsed seconds)' },
 ] as const;
 
-const FormSchema = CreateHabitSchema.omit({ frequency: true }).extend({
+const FormSchema = CreateHabitFields.omit({
+  frequency: true,
+  scheduled_time: true,
+}).extend({
   days: z.array(z.number().int().min(1).max(7)).min(1, 'Pick at least one day'),
+  scheduled_time: z.string().optional(),
 });
-type FormValues = Omit<CreateHabitInput, 'frequency'> & {
+type FormValues = Omit<CreateHabitInput, 'frequency' | 'scheduled_time'> & {
   days: number[];
+  scheduled_time?: string;
 };
 
 type GoalOption = { id: string; label: string };
@@ -50,7 +55,7 @@ export function AddHabitSheet({ goalOptions }: { goalOptions: GoalOption[] }) {
 
   const hasGoals = goalOptions.length > 0;
 
-  const { register, handleSubmit, control, reset, formState } =
+  const { register, handleSubmit, control, reset, watch, formState } =
     useForm<FormValues>({
       resolver: zodResolver(FormSchema as never),
       defaultValues: {
@@ -59,11 +64,13 @@ export function AddHabitSheet({ goalOptions }: { goalOptions: GoalOption[] }) {
         kind: 'check',
         target: undefined,
         unit: '',
-        emoji: '',
+        scheduled_time: '',
         color: DEFAULT_HABIT_COLOR,
         days: [...ALL_DAYS],
       },
     });
+
+  const kind = watch('kind');
 
   async function onSubmit(values: FormValues) {
     setServerError(null);
@@ -75,9 +82,12 @@ export function AddHabitSheet({ goalOptions }: { goalOptions: GoalOption[] }) {
         kind: values.kind,
         target: values.target ?? undefined,
         unit: values.unit || undefined,
-        emoji: values.emoji || undefined,
         color: values.color || DEFAULT_HABIT_COLOR,
         frequency: frequencyFromDays(values.days),
+        scheduled_time:
+          values.kind === 'timer' && values.scheduled_time
+            ? values.scheduled_time
+            : null,
       });
       reset();
       setOpen(false);
@@ -219,25 +229,34 @@ export function AddHabitSheet({ goalOptions }: { goalOptions: GoalOption[] }) {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {kind === 'timer' && (
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="habit-emoji">Emoji</Label>
-                <Input id="habit-emoji" placeholder="💧" {...register('emoji')} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="habit-color">Color</Label>
-                <Controller
-                  name="color"
-                  control={control}
-                  render={({ field }) => (
-                    <ColorPicker
-                      id="habit-color"
-                      value={field.value || DEFAULT_HABIT_COLOR}
-                      onChange={field.onChange}
-                    />
-                  )}
+                <Label htmlFor="habit-time">Time</Label>
+                <Input
+                  id="habit-time"
+                  type="time"
+                  data-testid="habit-time"
+                  {...register('scheduled_time')}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Optional. Sorts this habit into a part of your day.
+                </p>
               </div>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="habit-color">Color</Label>
+              <Controller
+                name="color"
+                control={control}
+                render={({ field }) => (
+                  <ColorPicker
+                    id="habit-color"
+                    value={field.value || DEFAULT_HABIT_COLOR}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
             </div>
 
             {serverError && (

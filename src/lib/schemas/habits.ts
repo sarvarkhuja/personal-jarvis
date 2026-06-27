@@ -16,7 +16,11 @@ export type FrequencyJson = z.infer<typeof FrequencyJsonSchema>;
 export const HabitKindSchema = z.enum(['check', 'counter', 'timer']);
 export type HabitKind = z.infer<typeof HabitKindSchema>;
 
-export const CreateHabitSchema = z.object({
+export const ScheduledTimeSchema = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use HH:MM (24-hour)');
+
+export const CreateHabitFields = z.object({
   name: z.string().min(1).max(80),
   goal_id: z.string().uuid(),
   kind: HabitKindSchema,
@@ -24,11 +28,19 @@ export const CreateHabitSchema = z.object({
   unit: z.string().max(20).nullable().optional(),
   frequency: FrequencyJsonSchema.default({ type: 'daily' }),
   color: z.string().min(1).max(20).default('gray'),
-  emoji: z.string().max(8).optional(),
+  scheduled_time: ScheduledTimeSchema.nullable().optional(),
 });
+
+export const CreateHabitSchema = CreateHabitFields.refine(
+  (d) => d.scheduled_time == null || d.kind === 'timer',
+  {
+    message: 'Only timer habits can have a scheduled time',
+    path: ['scheduled_time'],
+  },
+);
 export type CreateHabitInput = z.infer<typeof CreateHabitSchema>;
 
-export const UpdateHabitSchema = CreateHabitSchema.partial().extend({
+export const UpdateHabitSchema = CreateHabitFields.partial().extend({
   id: z.string().uuid(),
 });
 export type UpdateHabitInput = z.infer<typeof UpdateHabitSchema>;
