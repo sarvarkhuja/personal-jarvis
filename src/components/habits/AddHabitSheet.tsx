@@ -55,7 +55,7 @@ export function AddHabitSheet({ goalOptions }: { goalOptions: GoalOption[] }) {
 
   const hasGoals = goalOptions.length > 0;
 
-  const { register, handleSubmit, control, reset, watch, formState } =
+  const { register, handleSubmit, control, reset, watch, setValue, formState } =
     useForm<FormValues>({
       resolver: zodResolver(FormSchema as never),
       defaultValues: {
@@ -194,7 +194,12 @@ export function AddHabitSheet({ goalOptions }: { goalOptions: GoalOption[] }) {
                     data-testid="habit-kind"
                     className="h-9 rounded-md border border-input bg-background px-2 text-sm"
                     value={field.value}
-                    onChange={field.onChange}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      if (e.target.value !== 'timer') {
+                        setValue('scheduled_time', '');
+                      }
+                    }}
                   >
                     {KIND_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>

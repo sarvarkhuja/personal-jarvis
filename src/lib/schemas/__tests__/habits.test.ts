@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CreateHabitSchema } from '../habits';
+import { CreateHabitSchema, UpdateHabitSchema } from '../habits';
 
 const base = {
   name: 'Focus block',
@@ -19,9 +19,19 @@ describe('CreateHabitSchema scheduled_time', () => {
   });
 
   it('rejects a non-timer habit that carries a time', () => {
-    expect(() =>
-      CreateHabitSchema.parse({ ...base, kind: 'check', scheduled_time: '07:30' }),
-    ).toThrow();
+    const result = CreateHabitSchema.safeParse({ ...base, kind: 'check', scheduled_time: '07:30' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.path[0] === 'scheduled_time')).toBe(true);
+    }
+  });
+
+  it('UpdateHabitSchema accepts a partial with only id + scheduled_time', () => {
+    const parsed = UpdateHabitSchema.parse({
+      id: '123e4567-e89b-12d3-a456-426614174000',
+      scheduled_time: '09:00',
+    });
+    expect(parsed.scheduled_time).toBe('09:00');
   });
 
   it('rejects a malformed time', () => {
