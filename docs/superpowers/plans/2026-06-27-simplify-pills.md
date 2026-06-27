@@ -1151,14 +1151,24 @@ with:
         />
 ```
 
-- [ ] **Step 4: Typecheck + build**
+- [ ] **Step 4: Remove the obsolete `buildDoseRows` unit test**
 
-Run: `npm run typecheck && npm run build`
-Expected: PASS. `LogDoseControls.tsx` and `LowSupplyBanner.tsx` are now unused but still compile (their imports — `logDose`/`skipDose`/`refill`, `supplyDaysRemaining` — still exist).
-
-- [ ] **Step 5: Commit**
+`tests/unit/components/pills-widget.test.ts` tests the `buildDoseRows` export that Step 2 just removed, so `npm run test:run` would fail. Delete it (the command handles tracked or untracked):
 
 ```bash
+git rm -f --ignore-unmatch tests/unit/components/pills-widget.test.ts 2>/dev/null; rm -f tests/unit/components/pills-widget.test.ts
+```
+
+- [ ] **Step 5: Typecheck + tests + build**
+
+Run: `npm run typecheck && npm run test:run && npm run build`
+Expected: PASS. No test references `buildDoseRows`. `LogDoseControls.tsx`/`LowSupplyBanner.tsx` are now unused but still compile (their imports — `logDose`/`skipDose`/`refill`, `supplyDaysRemaining` — still exist).
+
+- [ ] **Step 6: Commit**
+
+```bash
+# If pills-widget.test.ts was tracked, its deletion was already staged in Step 4 and
+# is committed automatically below alongside the three source files.
 git add src/app/\(app\)/today/page.tsx src/components/today/PillsDueWidget.tsx src/components/today/PillToggleButton.tsx
 git commit -m "feat(pills): simplified Today pill toggle (one row per pill)"
 ```
@@ -1177,13 +1187,24 @@ git commit -m "feat(pills): simplified Today pill toggle (one row per pill)"
 
 **Context:** Everything removed here is confirmed unused after Tasks 4–5. `updateMedication`/`UpdateMedication` and medication domain symbols have **no** importers outside the medication files (verified by grep); nothing imports medication symbols via the `@/lib/domain` barrel.
 
-- [ ] **Step 1: Delete the dead files**
+- [ ] **Step 1: Delete the dead files (source + obsolete unit tests)**
+
+The four source files are untracked WIP; the two `tests/unit` files test removed
+functionality (`nextDoseTime`/`supplyDaysRemaining`, and `MedicationScheduleSchema`/`RefillSchema`)
+and would fail `npm run test:run`. Their replacement coverage already lives in
+`src/lib/domain/__tests__/pill-grid.test.ts` and `src/lib/schemas/__tests__/medications.test.ts`.
+The loop removes each whether tracked or untracked:
 
 ```bash
-git rm src/components/pills/RefillButton.tsx \
-       src/components/today/LogDoseControls.tsx \
-       src/components/today/LowSupplyBanner.tsx \
-       src/lib/domain/medications.ts
+for f in \
+  src/components/pills/RefillButton.tsx \
+  src/components/today/LogDoseControls.tsx \
+  src/components/today/LowSupplyBanner.tsx \
+  src/lib/domain/medications.ts \
+  tests/unit/domain/medications.test.ts \
+  tests/unit/schemas/medications.test.ts ; do
+  git rm -f --ignore-unmatch "$f" 2>/dev/null; rm -f "$f"
+done
 ```
 
 - [ ] **Step 2: Trim `actions/medications.ts` to the final shape**
@@ -1320,13 +1341,13 @@ In `src/lib/domain/index.ts`, delete this line:
 export * from './medications';
 ```
 
-- [ ] **Step 5: Confirm nothing references the deleted symbols**
+- [ ] **Step 5: Confirm nothing references the deleted symbols (unit scope)**
 
 Run:
 ```bash
-grep -rn "domain/medications\|MedicationSchedule\|supplyDaysRemaining\|nextDoseTime\|buildDoseRows\|LogDoseControls\|LowSupplyBanner\|RefillButton\|logDose\|skipDose\|\brefill\b\|updateMedication" src
+grep -rn "domain/medications\|MedicationSchedule\|supplyDaysRemaining\|nextDoseTime\|buildDoseRows\|LogDoseControls\|LowSupplyBanner\|RefillButton\|logDose\|skipDose\|\brefill\b\|updateMedication" src tests/unit
 ```
-Expected: **no matches** (only possible match would be inside this plan/spec docs, which are under `docs/`, not `src/`).
+Expected: **no matches**. (The e2e specs under `tests/e2e/` still reference removed columns — they are handled separately in Task 7, not here. `npm run test:run` does not run e2e.)
 
 - [ ] **Step 6: Full verification**
 
