@@ -1,15 +1,17 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import type { Habit, HabitCompletion, DisciplineScore } from '@/types'
-import { addHabit, toggleHabitCompletion, saveDisciplineScore } from '@/actions/discipline'
+import type { Goal, Habit, HabitCompletion, DisciplineScore } from '@/types'
+import { addHabit, toggleHabitCompletion } from '@/actions/discipline'
 import { calcHabitStreak } from '@/lib/utils/dashboard-utils'
 
 interface DisciplineTabProps {
   habits: Habit[]
   habitCompletions: HabitCompletion[]
   disciplineScores: DisciplineScore[]
+  goals: Goal[]
   today: string
 }
 
@@ -35,11 +37,10 @@ function last30DayKeys(today: string): string[] {
   return keys
 }
 
-export function DisciplineTab({ habits, habitCompletions, disciplineScores, today }: DisciplineTabProps) {
+export function DisciplineTab({ habits, habitCompletions, disciplineScores, goals, today }: DisciplineTabProps) {
   const [isPending, startTransition] = useTransition()
-  const [scoreInput, setScoreInput] = useState<number>(
-    disciplineScores.find(s => s.date === today)?.score ?? 7
-  )
+  const [formError, setFormError] = useState<string | null>(null)
+  const activeGoals = goals.filter(g => g.status === 'active')
 
   const last7Days = last7DayKeys(today)
   const last30Days = last30DayKeys(today)
@@ -47,7 +48,6 @@ export function DisciplineTab({ habits, habitCompletions, disciplineScores, toda
   const todayCompletedHabitIds = new Set(
     habitCompletions.filter(c => c.date === today).map(c => c.habit_id)
   )
-  const todayScore = disciplineScores.find(s => s.date === today)
 
   const scoreMap = new Map(disciplineScores.map(s => [s.date, s.score]))
   const chartData = last30Days.map(day => ({
@@ -60,12 +60,12 @@ export function DisciplineTab({ habits, habitCompletions, disciplineScores, toda
     startTransition(() => { toggleHabitCompletion(habitId, today) })
   }
 
-  function handleSaveScore() {
-    startTransition(() => { saveDisciplineScore(today, scoreInput) })
-  }
-
   function handleAddHabit(formData: FormData) {
-    startTransition(() => { addHabit(formData) })
+    setFormError(null)
+    startTransition(async () => {
+      const result = await addHabit(formData)
+      if (result?.error) setFormError(result.error)
+    })
   }
 
   return (
@@ -134,43 +134,6 @@ export function DisciplineTab({ habits, habitCompletions, disciplineScores, toda
         )}
       </div>
 
-      {/* Daily score */}
-      <div className="bg-surface border border-border rounded-lg p-6">
-        <div className="flex items-center justify-between mb-8">
-          <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">[ TODAY&apos;S SCORE ]</div>
-          {todayScore && (
-            <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-success">[{todayScore.score}/10 SAVED]</span>
-          )}
-        </div>
-        <div className="flex items-end gap-6">
-          <div className="flex-1 pb-1">
-            <input
-              type="range"
-              min={1}
-              max={10}
-              value={scoreInput}
-              onChange={e => setScoreInput(Number(e.target.value))}
-              className="w-full h-2 rounded-none bg-border appearance-none cursor-pointer accent-text-display"
-              style={{ accentColor: 'var(--text-display)' }}
-            />
-            <div className="flex justify-between mt-2 font-mono text-[9px] text-text-disabled">
-              <span>1</span>
-              <span>10</span>
-            </div>
-          </div>
-          <div className="flex flex-col items-end">
-             <span className="font-doto text-4xl leading-none tracking-tight text-text-display mb-2">{scoreInput}</span>
-             <button
-               onClick={handleSaveScore}
-               disabled={isPending}
-               className="font-mono text-[11px] tracking-[0.08em] uppercase bg-transparent border border-border-visible text-text-primary px-4 py-2 hover:border-text-primary transition-colors disabled:opacity-50"
-             >
-               {isPending ? '[ SAVING ]' : '[ SAVE ]'}
-             </button>
-          </div>
-        </div>
-      </div>
-
       {/* 30-day score trend */}
       {disciplineScores.length > 0 && (
         <div className="bg-surface border border-border rounded-lg p-6">
@@ -215,29 +178,57 @@ export function DisciplineTab({ habits, habitCompletions, disciplineScores, toda
       {/* Add habit */}
       <div className="bg-surface border border-border rounded-lg p-6">
         <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-6">[ ADD HABIT ]</div>
-        <form action={handleAddHabit} className="flex gap-4">
-          <input
-            name="emoji"
-            type="text"
-            placeholder="XX"
-            maxLength={2}
-            className="w-12 bg-transparent border-b border-border-visible py-2 font-mono text-[13px] text-center text-text-primary focus:outline-none focus:border-text-primary transition-colors placeholder:text-text-disabled"
-          />
-          <input
-            name="name"
-            type="text"
-            placeholder="HABIT NAME"
-            required
-            className="flex-1 bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={isPending}
-            className="font-mono text-[11px] tracking-[0.08em] uppercase bg-transparent border border-border-visible text-text-primary px-6 py-2 hover:border-text-primary transition-colors disabled:opacity-50"
-          >
-            + ADD
-          </button>
-        </form>
+        {activeGoals.length === 0 ? (
+          <p className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">
+            Habits belong to a goal.{' '}
+            <Link href="/goals" className="underline hover:text-text-primary">
+              Create a goal first
+            </Link>
+            .
+          </p>
+        ) : (
+          <form action={handleAddHabit} className="flex flex-col gap-3">
+            <div className="flex gap-4">
+              <input
+                name="emoji"
+                type="text"
+                placeholder="XX"
+                maxLength={2}
+                className="w-12 bg-transparent border-b border-border-visible py-2 font-mono text-[13px] text-center text-text-primary focus:outline-none focus:border-text-primary transition-colors placeholder:text-text-disabled"
+              />
+              <input
+                name="name"
+                type="text"
+                placeholder="HABIT NAME"
+                required
+                className="flex-1 bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors"
+              />
+            </div>
+            <div className="flex gap-4">
+              <select
+                name="goal_id"
+                required
+                defaultValue=""
+                className="flex-1 bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary focus:outline-none focus:border-text-primary transition-colors"
+              >
+                <option value="" disabled>SELECT GOAL</option>
+                {activeGoals.map(g => (
+                  <option key={g.id} value={g.id}>{g.title.toUpperCase()}</option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="font-mono text-[11px] tracking-[0.08em] uppercase bg-transparent border border-border-visible text-text-primary px-6 py-2 hover:border-text-primary transition-colors disabled:opacity-50"
+              >
+                + ADD
+              </button>
+            </div>
+            {formError && (
+              <p className="font-mono text-[11px] tracking-[0.08em] uppercase text-warning">{formError}</p>
+            )}
+          </form>
+        )}
       </div>
     </div>
   )

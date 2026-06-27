@@ -29,14 +29,14 @@ export function calcHabitStreak(completionDates: string[], today: string): numbe
 }
 
 /**
- * Aggregate expenses by month (YYYY-MM key), returning total amount_pence per month.
+ * Aggregate expenses by month (YYYY-MM key), returning total amount per month.
  */
 export function aggregateExpensesByMonth(
-  expenses: { date: string; amount_pence: number }[]
+  expenses: { date: string; amount: number }[]
 ): Record<string, number> {
   return expenses.reduce<Record<string, number>>((acc, e) => {
     const key = e.date.slice(0, 7) // 'YYYY-MM'
-    acc[key] = (acc[key] ?? 0) + e.amount_pence
+    acc[key] = (acc[key] ?? 0) + e.amount
     return acc
   }, {})
 }
@@ -54,7 +54,18 @@ export function lastNMonthKeys(n: number): string[] {
   return keys
 }
 
-/** Format pence as £ string: 842 → "£8.42" */
-export function formatPence(pence: number): string {
-  return `£${(pence / 100).toFixed(2)}`
+const UZS_FORMATTER = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+
+/** Format whole-sum UZS amount with thousands separators: 12500 → "12,500 so'm" */
+export function formatUzs(amount: number): string {
+  return `${UZS_FORMATTER.format(amount)} so'm`
+}
+
+/** Compact UZS formatting for tight UI: 1500000 → "1.5M so'm", -1500000 → "-1.5M so'm" */
+export function formatUzsCompact(amount: number): string {
+  const sign = amount < 0 ? '-' : ''
+  const a = Math.abs(amount)
+  if (a >= 1_000_000) return `${sign}${(a / 1_000_000).toFixed(a % 1_000_000 === 0 ? 0 : 1)}M so'm`
+  if (a >= 1_000) return `${sign}${(a / 1_000).toFixed(a % 1_000 === 0 ? 0 : 1)}K so'm`
+  return `${sign}${formatUzs(a)}`
 }

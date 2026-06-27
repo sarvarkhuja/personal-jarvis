@@ -8,10 +8,25 @@ export async function addHabit(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const name = (formData.get('name') as string | null)?.trim()
+  const goalId = (formData.get('goal_id') as string | null)?.trim()
+  const emoji = (formData.get('emoji') as string | null) || '✅'
+
+  if (!name) return { error: 'NAME_REQUIRED' }
+  if (!goalId) return { error: 'GOAL_REQUIRED' }
+
+  const { data: goalRow } = await supabase
+    .from('goals')
+    .select('id')
+    .eq('id', goalId)
+    .maybeSingle()
+  if (!goalRow) return { error: 'GOAL_NOT_FOUND' }
+
   const { error } = await supabase.from('habits').insert({
     user_id: user.id,
-    name: formData.get('name') as string,
-    emoji: (formData.get('emoji') as string) || '✅',
+    goal_id: goalId,
+    name,
+    emoji,
   })
 
   if (error) return { error: error.message }
@@ -31,20 +46,5 @@ export async function toggleHabitCompletion(habitId: string, date: string) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/')
-}
-
-export async function saveDisciplineScore(date: string, score: number) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-
-  // Upsert: insert or update if date already has a score
-  const { error } = await supabase.from('discipline_scores').upsert(
-    { user_id: user.id, date, score },
-    { onConflict: 'user_id,date' }
-  )
-
-  if (error) return { error: error.message }
   revalidatePath('/')
 }

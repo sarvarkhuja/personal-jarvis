@@ -1,6 +1,7 @@
 import { Doto, Space_Grotesk, Space_Mono } from 'next/font/google'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/layout/AppSidebar'
+import { ShortcutsProvider } from '@/components/keyboard/ShortcutsProvider'
 import { cn } from '@/lib/utils'
 
 const doto = Doto({ subsets: ['latin'], variable: '--font-doto' })
@@ -21,6 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </SidebarInset>
       </SidebarProvider>
+      <ShortcutsProvider />
     </div>
   )
 }

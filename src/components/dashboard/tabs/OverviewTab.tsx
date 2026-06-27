@@ -1,20 +1,10 @@
 'use client'
 
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import type { ProgrammePosition, Goal, Expense, FocusArea, FocusCheckin, Habit, HabitCompletion, DisciplineScore } from '@/types'
-import { calcOverallFocusStreak, calcHabitStreak, aggregateExpensesByMonth, lastNMonthKeys, formatPence } from '@/lib/utils/dashboard-utils'
-
-const NEXT_TRAINING_DAY: Record<number, string> = {
-  0: 'Monday', 1: 'Tuesday', 2: 'Thursday', 3: 'Thursday',
-  4: 'Friday', 5: 'Monday', 6: 'Monday',
-}
+import type { Goal, Expense, FocusArea, FocusCheckin, Habit, HabitCompletion, DisciplineScore } from '@/types'
+import { calcOverallFocusStreak, calcHabitStreak, aggregateExpensesByMonth, lastNMonthKeys, formatUzs, formatUzsCompact } from '@/lib/utils/dashboard-utils'
 
 interface OverviewTabProps {
-  position: ProgrammePosition
   today: string
-  todayDay: { id: string; name: string; emphasis: string | null } | null
-  completedDows: number[]
   goals: Goal[]
   expenses: Expense[]
   focusAreas: FocusArea[]
@@ -25,7 +15,7 @@ interface OverviewTabProps {
 }
 
 export function OverviewTab({
-  position, today, todayDay, completedDows,
+  today,
   goals, expenses, focusAreas, focusCheckins,
   habits, habitCompletions, disciplineScores,
 }: OverviewTabProps) {
@@ -37,7 +27,7 @@ export function OverviewTab({
 
   const thisMonth = today.slice(0, 7)
   const monthExpenses = expenses.filter(e => e.date.startsWith(thisMonth))
-  const monthTotal = monthExpenses.reduce((sum, e) => sum + e.amount_pence, 0)
+  const monthTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0)
 
   const last7Scores = disciplineScores.slice(0, 7).map(s => s.score)
   const avgScoreNum = last7Scores.length
@@ -65,7 +55,7 @@ export function OverviewTab({
   }
 
   const categoryTotals = monthExpenses.reduce<Record<string, number>>((acc, e) => {
-    acc[e.category] = (acc[e.category] ?? 0) + e.amount_pence
+    acc[e.category] = (acc[e.category] ?? 0) + e.amount
     return acc
   }, {})
   const topCategories = Object.entries(categoryTotals)
@@ -80,7 +70,7 @@ export function OverviewTab({
         <StatCard label="Goals" value={`${activeGoals.length}`} unit={`/ ${goals.length}`} status="primary" />
         <StatCard
           label={`${new Date(today).toLocaleString('en-GB', { month: 'short' })} Spend`}
-          value={formatPence(monthTotal).replace('.00', '')}
+          value={formatUzsCompact(monthTotal)}
           status="warning"
         />
         <StatCard 
@@ -91,36 +81,8 @@ export function OverviewTab({
         />
       </div>
 
-      {/* Today + Goals */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Today's workout */}
-        <div className="bg-surface border border-border rounded-lg p-6 flex flex-col justify-between">
-          <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-8">[ TODAY · WORKOUT ]</div>
-          {position.isTrainingDay && todayDay ? (
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 rounded-none bg-success" />
-                <span className="font-mono text-sm font-bold text-success uppercase tracking-wider">{todayDay.name}</span>
-              </div>
-              {todayDay.emphasis && (
-                <p className="font-sans text-[16px] text-text-primary mb-6">{todayDay.emphasis}</p>
-              )}
-              <Link href="/workout" className="block w-full">
-                <button className="w-full bg-text-display text-background font-mono text-[13px] tracking-[0.06em] uppercase h-11 rounded-full hover:opacity-90 transition-opacity">
-                  START WORKOUT
-                </button>
-              </Link>
-            </div>
-          ) : (
-            <div>
-              <span className="font-mono text-sm text-text-disabled uppercase">Rest Day</span>
-              <p className="font-mono text-[11px] tracking-[0.08em] text-text-secondary uppercase mt-2">
-                Next: {NEXT_TRAINING_DAY[position.dayOfWeek]}
-              </p>
-            </div>
-          )}
-        </div>
-
+      {/* Goals */}
+      <div className="grid grid-cols-1 gap-4">
         {/* Active goals top 3 */}
         <div className="bg-surface border border-border rounded-lg p-6">
           <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-6">[ ACTIVE GOALS ]</div>
@@ -245,14 +207,14 @@ export function OverviewTab({
             })}
           </div>
           <div className="space-y-0">
-            {topCategories.map(([cat, pence], idx, arr) => {
+            {topCategories.map(([cat, amount], idx, arr) => {
               const isLast = idx === arr.length - 1;
               return (
                 <div key={cat} className={`flex justify-between py-2 ${!isLast ? 'border-b border-border' : ''}`}>
                   <span className="font-mono text-[11px] tracking-[0.08em] uppercase" style={{ color: CATEGORY_COLORS[cat] ?? 'var(--text-disabled)' }}>
                     {cat}
                   </span>
-                  <span className="font-mono text-[11px] text-text-primary">{formatPence(pence)}</span>
+                  <span className="font-mono text-[11px] text-text-primary">{formatUzsCompact(amount)}</span>
                 </div>
               )
             })}

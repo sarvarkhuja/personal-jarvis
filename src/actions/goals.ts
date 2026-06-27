@@ -8,17 +8,20 @@ export async function addGoal(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const targetStr = formData.get('target_value') as string
-  const target_value = targetStr ? parseFloat(targetStr) : null
+  const title = (formData.get('title') as string | null)?.trim()
+  if (!title) return { error: 'TITLE_REQUIRED' }
+
+  const description = (formData.get('description') as string | null)?.trim() || null
+  const deadline = (formData.get('deadline') as string | null)?.trim() || null
+  const linkedHabitId =
+    (formData.get('linked_habit_id') as string | null)?.trim() || null
 
   const { error } = await supabase.from('goals').insert({
     user_id: user.id,
-    title: formData.get('title') as string,
-    description: (formData.get('description') as string) || null,
-    target_value,
-    current_value: 0,
-    unit: (formData.get('unit') as string) || null,
-    deadline: (formData.get('deadline') as string) || null,
+    title,
+    description,
+    deadline,
+    linked_habit_id: linkedHabitId,
     status: 'active',
   })
 

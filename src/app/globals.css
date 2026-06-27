@@ -28,14 +28,6 @@
   --color-error: var(--error);
   --color-info: var(--info);
   --color-interactive: var(--interactive);
-  
-  /* Nothing Design System Spacing */
-  --spacing-2xs: 2px;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
 
   /* Shadcn standard color aliases mapped to Nothing where possible */
   --color-ring: var(--ring);
@@ -176,4 +168,16 @@
 .dot-grid-subtle {
   background-image: radial-gradient(circle, var(--border) 0.5px, transparent 0.5px);
   background-size: 12px 12px;
+}
+
+/* Percussive 1Hz blink for the live focus session (colon + ● RUNNING).
+   Gated behind motion-safe utilities at the call site for reduced-motion users. */
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }

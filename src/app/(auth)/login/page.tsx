@@ -31,7 +31,7 @@ export default function LoginPage() {
   }
 
   return (
-    <Card>
+    <Card className='w-[32rem]'>
       <CardHeader>
         <CardTitle className="text-2xl">Welcome back</CardTitle>
         <CardDescription>Sign in to your training tracker</CardDescription>

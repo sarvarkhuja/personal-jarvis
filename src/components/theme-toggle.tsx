@@ -4,6 +4,7 @@ import { useTheme } from 'next-themes'
 import { Sun, Moon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { setTheme as persistTheme } from '@/lib/actions/account'
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme()
@@ -15,9 +16,19 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   const isDark = theme === 'dark'
 
+  const onClick = () => {
+    const next = isDark ? 'light' : 'dark'
+    setTheme(next)
+    // Persist server-side too. Fire-and-forget; failure here doesn't break the
+    // local toggle since next-themes already updated the cookie.
+    void persistTheme({ theme: next }).catch((e) => {
+      console.error('[theme] persist failed', e)
+    })
+  }
+
   return (
     <button
-      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      onClick={onClick}
       aria-label="Toggle theme"
       className={cn(
         "relative flex w-full items-center gap-3 overflow-hidden rounded-none p-2 h-11",

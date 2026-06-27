@@ -8,13 +8,14 @@ export async function addExpense(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const amountStr = formData.get('amount') as string
-  const amount_pence = Math.round(parseFloat(amountStr) * 100)
-  if (isNaN(amount_pence) || amount_pence <= 0) return { error: 'Invalid amount' }
+  const rawAmount = (formData.get('amount') as string | null)?.replace(/[^\d]/g, '') ?? ''
+  const amount = parseInt(rawAmount, 10)
+  if (!Number.isFinite(amount) || amount <= 0) return { error: 'Invalid amount' }
 
   const { error } = await supabase.from('expenses').insert({
     user_id: user.id,
-    amount_pence,
+    amount,
+    currency: 'UZS',
     category: formData.get('category') as string,
     description: (formData.get('description') as string) || null,
     date: formData.get('date') as string,
@@ -22,6 +23,7 @@ export async function addExpense(formData: FormData) {
 
   if (error) return { error: error.message }
   revalidatePath('/')
+  revalidatePath('/expenses')
 }
 
 export async function deleteExpense(id: string) {
@@ -37,4 +39,5 @@ export async function deleteExpense(id: string) {
 
   if (error) return { error: error.message }
   revalidatePath('/')
+  revalidatePath('/expenses')
 }

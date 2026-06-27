@@ -1,15 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import type { ProgrammePosition, Goal, Expense, FocusArea, FocusCheckin, Habit, HabitCompletion, DisciplineScore } from '@/types'
-import { WorkoutTab } from './tabs/WorkoutTab'
+import Link from 'next/link'
+import type { Goal, Expense, FocusArea, FocusCheckin, Habit, HabitCompletion, DisciplineScore } from '@/types'
 import { OverviewTab } from './tabs/OverviewTab'
 import { ExpensesTab } from './tabs/ExpensesTab'
 import { GoalsTab } from './tabs/GoalsTab'
 import { FocusTab } from './tabs/FocusTab'
 import { DisciplineTab } from './tabs/DisciplineTab'
 
-type Tab = 'overview' | 'expenses' | 'goals' | 'focus' | 'discipline' | 'workout'
+type Tab = 'overview' | 'expenses' | 'goals' | 'focus' | 'discipline'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -17,16 +17,17 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'goals', label: 'Goals' },
   { id: 'focus', label: 'Focus' },
   { id: 'discipline', label: 'Discipline' },
-  { id: 'workout', label: 'Workout' },
+]
+
+const TAB_LINKS: { href: string; label: string }[] = [
+  { href: '/today', label: 'Today' },
+  { href: '/habits', label: 'Habits' },
+  { href: '/pills', label: 'Pills' },
+  { href: '/plans', label: 'Plans' },
 ]
 
 export interface JarvisDashboardProps {
   displayName: string | null
-  position: ProgrammePosition
-  todayDay: { id: string; name: string; emphasis: string | null } | null
-  completedDows: number[]
-  latestWeight: { weight_kg: number | null; date: string } | null
-  targetWeightKg: number | null
   goals: Goal[]
   expenses: Expense[]
   focusAreas: FocusArea[]
@@ -34,27 +35,24 @@ export interface JarvisDashboardProps {
   habits: Habit[]
   habitCompletions: HabitCompletion[]
   disciplineScores: DisciplineScore[]
-  today: string  // ISO date string 'YYYY-MM-DD'
+  today: string
 }
 
 export function JarvisDashboard(props: JarvisDashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const {
-    displayName, position, today,
-    todayDay, completedDows, latestWeight, targetWeightKg,
+    displayName, today,
     goals, expenses, focusAreas, focusCheckins,
     habits, habitCompletions, disciplineScores,
   } = props
 
-  const monthName = new Date(today).toLocaleString('en-GB', { month: 'short' }).toUpperCase()
   const dayName = new Date(today).toLocaleString('en-GB', { weekday: 'short' }).toUpperCase()
   const dateDisplay = new Date(today).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'long', year: 'numeric'
+    day: 'numeric', month: 'long', year: 'numeric',
   }).toUpperCase()
 
   return (
     <div className="min-h-full w-full">
-      {/* Header */}
       <div className="px-6 pt-8 pb-4">
         <div className="flex items-center justify-between mb-2">
           <div>
@@ -62,7 +60,7 @@ export function JarvisDashboard(props: JarvisDashboardProps) {
               JARVIS
             </h1>
             <p className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">
-              {dayName} · {dateDisplay} · WEEK {position.weekNumber} OF 12
+              {dayName} · {dateDisplay}
             </p>
           </div>
           {displayName && (
@@ -73,7 +71,6 @@ export function JarvisDashboard(props: JarvisDashboardProps) {
         </div>
       </div>
 
-      {/* Tab bar */}
       <div className="flex gap-6 px-6 mt-2 border-b border-border overflow-x-auto">
         {TABS.map(({ id, label }) => (
           <button
@@ -88,16 +85,21 @@ export function JarvisDashboard(props: JarvisDashboardProps) {
             [ {label} ]
           </button>
         ))}
+        {TAB_LINKS.map(({ href, label }) => (
+          <Link
+            key={href}
+            href={href}
+            className="font-mono text-[11px] tracking-[0.08em] uppercase pb-3 border-b-2 border-transparent text-text-disabled hover:text-text-secondary transition-colors whitespace-nowrap"
+          >
+            [ {label} ]
+          </Link>
+        ))}
       </div>
 
-      {/* Tab content */}
       <div className="px-6 py-5">
         {activeTab === 'overview' && (
           <OverviewTab
-            position={position}
             today={today}
-            todayDay={todayDay}
-            completedDows={completedDows}
             goals={goals}
             expenses={expenses}
             focusAreas={focusAreas}
@@ -111,7 +113,7 @@ export function JarvisDashboard(props: JarvisDashboardProps) {
           <ExpensesTab expenses={expenses} today={today} />
         )}
         {activeTab === 'goals' && (
-          <GoalsTab goals={goals} today={today} />
+          <GoalsTab goals={goals} habits={habits} today={today} />
         )}
         {activeTab === 'focus' && (
           <FocusTab
@@ -125,16 +127,8 @@ export function JarvisDashboard(props: JarvisDashboardProps) {
             habits={habits}
             habitCompletions={habitCompletions}
             disciplineScores={disciplineScores}
+            goals={goals}
             today={today}
-          />
-        )}
-        {activeTab === 'workout' && (
-          <WorkoutTab
-            position={position}
-            todayDay={todayDay}
-            completedDows={completedDows}
-            latestWeight={latestWeight}
-            targetWeightKg={targetWeightKg}
           />
         )}
       </div>

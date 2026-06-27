@@ -1,21 +1,23 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import type { Goal } from '@/types'
+import type { Goal, Habit } from '@/types'
 import { addGoal, updateGoalProgress, completeGoal, deleteGoal } from '@/actions/goals'
 
 interface GoalsTabProps {
   goals: Goal[]
+  habits: Habit[]
   today: string
 }
 
-export function GoalsTab({ goals, today }: GoalsTabProps) {
+export function GoalsTab({ goals, habits, today }: GoalsTabProps) {
   const [isPending, startTransition] = useTransition()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
 
   const activeGoals = goals.filter(g => g.status === 'active')
   const completedGoals = goals.filter(g => g.status === 'completed')
+  const habitOptions = habits.filter(h => h.is_active)
 
   function handleAddGoal(formData: FormData) {
     startTransition(() => { addGoal(formData) })
@@ -50,12 +52,24 @@ export function GoalsTab({ goals, today }: GoalsTabProps) {
         ) : (
           <div className="space-y-8">
             {activeGoals.map(goal => {
-              const pct = goal.target_value
-                ? Math.min(100, Math.round((goal.current_value / goal.target_value) * 100))
-                : 0
               const daysLeft = goal.deadline
                 ? Math.ceil((new Date(goal.deadline).getTime() - new Date(today).getTime()) / 86400000)
                 : null
+              // Bar reflects time elapsed toward the deadline (0% at created_at, 100% at deadline).
+              // Falls back to value-based progress when no deadline is set.
+              const totalMs = goal.deadline
+                ? new Date(goal.deadline).getTime() - new Date(goal.created_at).getTime()
+                : 0
+              const elapsedMs = goal.deadline
+                ? new Date(today).getTime() - new Date(goal.created_at).getTime()
+                : 0
+              const pct = goal.deadline
+                ? totalMs > 0
+                  ? Math.max(0, Math.min(100, Math.round((elapsedMs / totalMs) * 100)))
+                  : 100
+                : goal.target_value
+                  ? Math.min(100, Math.round((goal.current_value / goal.target_value) * 100))
+                  : 0
 
               return (
                 <div key={goal.id} className="border border-border rounded-none p-6">
@@ -110,52 +124,54 @@ export function GoalsTab({ goals, today }: GoalsTabProps) {
                     <span className="font-mono text-[13px] tracking-[0.08em] text-text-primary shrink-0">{pct}%</span>
                   </div>
 
-                  {/* Current / Target + edit */}
-                  <div className="flex items-center gap-4 mt-6">
-                    {editingId === goal.id ? (
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          value={editValue}
-                          onChange={e => setEditValue(e.target.value)}
-                          className="w-24 bg-transparent border-b border-border-visible focus:border-text-primary text-text-primary px-2 py-1 font-mono text-[13px] transition-colors outline-none"
-                          autoFocus
-                        />
-                        <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">
-                          / {goal.target_value} {goal.unit}
-                        </span>
-                        <div className="flex gap-2 ml-4">
+                  {/* Current / Target + edit — only for legacy goals with a numeric target */}
+                  {goal.target_value !== null && (
+                    <div className="flex items-center gap-4 mt-6">
+                      {editingId === goal.id ? (
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            className="w-24 bg-transparent border-b border-border-visible focus:border-text-primary text-text-primary px-2 py-1 font-mono text-[13px] transition-colors outline-none"
+                            autoFocus
+                          />
+                          <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">
+                            / {goal.target_value} {goal.unit}
+                          </span>
+                          <div className="flex gap-2 ml-4">
+                            <button
+                              onClick={() => handleUpdateProgress(goal.id)}
+                              className="font-mono text-[11px] tracking-[0.08em] uppercase px-3 py-1 border border-border-visible text-text-primary hover:border-text-primary transition-colors"
+                            >
+                              SAVE
+                            </button>
+                            <button
+                              onClick={() => setEditingId(null)}
+                              className="font-mono text-[11px] tracking-[0.08em] uppercase px-3 py-1 text-text-secondary hover:text-text-primary transition-colors"
+                            >
+                              CANCEL
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between w-full">
+                          <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">
+                            {goal.current_value} / {goal.target_value} {goal.unit}
+                          </span>
                           <button
-                            onClick={() => handleUpdateProgress(goal.id)}
-                            className="font-mono text-[11px] tracking-[0.08em] uppercase px-3 py-1 border border-border-visible text-text-primary hover:border-text-primary transition-colors"
+                            onClick={() => {
+                              setEditingId(goal.id)
+                              setEditValue(String(goal.current_value))
+                            }}
+                            className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary hover:text-text-primary transition-colors"
                           >
-                            SAVE
-                          </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="font-mono text-[11px] tracking-[0.08em] uppercase px-3 py-1 text-text-secondary hover:text-text-primary transition-colors"
-                          >
-                            CANCEL
+                            [ UPDATE ]
                           </button>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between w-full">
-                        <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary">
-                          {goal.current_value} / {goal.target_value ?? '?'} {goal.unit}
-                        </span>
-                        <button
-                          onClick={() => {
-                            setEditingId(goal.id)
-                            setEditValue(String(goal.current_value))
-                          }}
-                          className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          [ UPDATE ]
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -166,38 +182,69 @@ export function GoalsTab({ goals, today }: GoalsTabProps) {
       {/* Add goal form */}
       <div className="bg-surface border border-border rounded-lg p-6">
         <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-text-secondary mb-6">[ ADD GOAL ]</div>
-        <form action={handleAddGoal} className="space-y-4">
-          <input
-            name="title"
-            type="text"
-            placeholder="GOAL TITLE"
-            required
-            className="w-full bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors"
-          />
-          <div className="grid grid-cols-3 gap-6">
+        <form action={handleAddGoal} className="space-y-5">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="goal-title" className="font-mono text-[10px] tracking-[0.08em] uppercase text-text-disabled">
+              Title
+            </label>
             <input
-              name="target_value"
-              type="number"
-              step="any"
-              placeholder="TARGET"
-              className="bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors"
-            />
-            <input
-              name="unit"
+              id="goal-title"
+              name="title"
               type="text"
-              placeholder="UNIT"
+              placeholder="READ 12 BOOKS"
+              required
               className="bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors"
-            />
-            <input
-              name="deadline"
-              type="date"
-              className="bg-transparent border-b border-border-visible py-2 font-mono text-[13px] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors uppercase tracking-[0.08em] appearance-none"
             />
           </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="goal-description" className="font-mono text-[10px] tracking-[0.08em] uppercase text-text-disabled">
+              Description
+            </label>
+            <input
+              id="goal-description"
+              name="description"
+              type="text"
+              placeholder="OPTIONAL"
+              className="bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-text-primary transition-colors"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="goal-deadline" className="font-mono text-[10px] tracking-[0.08em] uppercase text-text-disabled">
+              Target date
+            </label>
+            <input
+              id="goal-deadline"
+              name="deadline"
+              type="date"
+              className="bg-transparent border-b border-border-visible py-2 font-mono text-[13px] text-text-primary focus:outline-none focus:border-text-primary transition-colors appearance-none [color-scheme:dark]"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="goal-linked-habit" className="font-mono text-[10px] tracking-[0.08em] uppercase text-text-disabled">
+              Linked habit (optional)
+            </label>
+            <select
+              id="goal-linked-habit"
+              name="linked_habit_id"
+              defaultValue=""
+              className="bg-transparent border-b border-border-visible py-2 font-mono text-[13px] uppercase tracking-[0.08em] text-text-primary focus:outline-none focus:border-text-primary transition-colors"
+            >
+              <option value="">— NONE —</option>
+              {habitOptions.map(h => (
+                <option key={h.id} value={h.id}>
+                  {h.emoji} {h.name.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             type="submit"
             disabled={isPending}
-            className="w-full mt-8 bg-text-display text-background font-mono text-[13px] tracking-[0.06em] uppercase h-11 rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="w-full mt-4 bg-text-display text-background font-mono text-[13px] tracking-[0.06em] uppercase h-11 rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {isPending ? '[ ADDING ]' : 'ADD GOAL'}
           </button>

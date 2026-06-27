@@ -1,5 +1,7 @@
 // src/types/index.ts
 
+import type { LiftKey } from '@/lib/utils/lift-metrics'
+
 export interface Profile {
   id: string
   email: string | null
@@ -10,77 +12,6 @@ export interface Profile {
   unit_preference: 'kg' | 'lbs'
   created_at: string
   updated_at: string
-}
-
-export interface Block {
-  id: string
-  name: string            // 'Block A', 'Block B', 'Block C'
-  description: string | null
-  week_start: number      // 1, 5, 9
-  week_end: number        // 4, 8, 12
-  focus: string | null
-  rep_range_compounds: string | null
-  rep_range_accessories: string | null
-  sort_order: number
-  created_at: string
-}
-
-export interface ProgrammeDay {
-  id: string
-  block_id: string
-  day_of_week: number     // 1=Mon, 2=Tue, 4=Thu, 5=Fri
-  name: string
-  emphasis: string | null
-  sort_order: number
-  created_at: string
-}
-
-export interface ProgrammeExercise {
-  id: string
-  programme_day_id: string
-  exercise_name: string
-  sets: number
-  reps_min: number
-  reps_max: number
-  tempo: string | null
-  rest_seconds: number
-  rest_category: 'short' | 'moderate' | 'long'
-  coach_note: string | null
-  muscle_groups: string[]
-  is_timed: boolean
-  time_seconds: number | null
-  sort_order: number
-  created_at: string
-}
-
-export interface WorkoutSession {
-  id: string
-  user_id: string
-  programme_day_id: string | null
-  block_id: string | null
-  week_number: number
-  session_date: string
-  started_at: string | null
-  finished_at: string | null
-  duration_minutes: number | null
-  is_deload: boolean
-  notes: string | null
-  created_at: string
-}
-
-export interface WorkoutSet {
-  id: string
-  session_id: string
-  programme_exercise_id: string | null
-  exercise_name: string
-  set_number: number
-  weight_kg: number | null
-  reps_completed: number | null
-  rir: number | null
-  status: 'completed' | 'failed' | 'skipped' | 'warmup'
-  is_pr: boolean
-  notes: string | null
-  created_at: string
 }
 
 export interface BodyMetrics {
@@ -118,23 +49,24 @@ export interface PersonalRecord {
   reps: number
   estimated_1rm: number | null
   achieved_date: string
-  session_id: string | null
   created_at: string
 }
 
-export interface ProgrammePosition {
-  weekNumber: number       // 1–12
-  blockName: 'A' | 'B' | 'C'
-  isDeloadWeek: boolean
-  dayOfWeek: number        // 0=Sun, 1=Mon, ...
-  isTrainingDay: boolean
-  daysElapsed: number
+export interface WeeklyLift {
+  id: string
+  user_id: string
+  exercise: LiftKey
+  week_start: string
+  weight_kg: number | null
+  reps: number
+  created_at: string
+  updated_at: string
 }
 
 export interface Expense {
   id: string
   user_id: string
-  amount_pence: number
+  amount: number
   currency: string
   category: 'food' | 'transport' | 'shopping' | 'entertainment' | 'health' | 'other'
   description: string | null
@@ -176,6 +108,7 @@ export interface FocusCheckin {
 export interface Habit {
   id: string
   user_id: string
+  goal_id: string
   name: string
   emoji: string
   sort_order: number
@@ -197,5 +130,22 @@ export interface DisciplineScore {
   date: string
   score: number
   notes: string | null
+  created_at: string
+}
+
+export type ProgressPhotoPose =
+  | 'front_relaxed'
+  | 'front_flexed'
+  | 'side'
+  | 'back_relaxed'
+  | 'back_flexed'
+
+export interface ProgressPhoto {
+  id: string
+  user_id: string
+  date: string
+  pose: ProgressPhotoPose
+  storage_path: string
+  thumbnail_path: string | null
   created_at: string
 }
