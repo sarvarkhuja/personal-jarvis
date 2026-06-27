@@ -3,12 +3,12 @@ import { frequencyLabel, type DayCell } from '@/lib/domain/habit-consistency';
 import type { FrequencyJson } from '@/lib/schemas/habits';
 import { DeleteHabitButton } from './DeleteHabitButton';
 import { HabitTimer } from './HabitTimer';
+import { HabitTimeControl } from './HabitTimeControl';
 
 type Props = {
   habit: {
     id: string;
     name: string;
-    emoji: string | null;
     kind: 'check' | 'counter' | 'timer';
     frequency: FrequencyJson;
   };
@@ -18,6 +18,7 @@ type Props = {
   strip: DayCell[];
   dueToday: boolean;
   doneToday: boolean;
+  scheduledTime: string | null;
 };
 
 /**
@@ -34,8 +35,9 @@ export function HabitCard({
   strip,
   dueToday,
   doneToday,
+  scheduledTime,
 }: Props) {
-  const { id, name, emoji, kind, frequency } = habit;
+  const { id, name, kind, frequency } = habit;
   const doneDays = strip.filter((c) => c.due && c.done).length;
   const dueDays = strip.filter((c) => c.due).length;
 
@@ -47,14 +49,16 @@ export function HabitCard({
       {/* header: identity + schedule */}
       <header className="mb-6 flex items-baseline justify-between gap-3">
         <h2 className="flex min-w-0 items-baseline gap-2 font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary">
-          <span aria-hidden className="text-sm leading-none">
-            {emoji ?? '·'}
-          </span>
           <span className="truncate text-text-primary">{name}</span>
         </h2>
-        <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-text-disabled">
-          {frequencyLabel(frequency)}
-        </span>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-text-disabled">
+            {frequencyLabel(frequency)}
+          </span>
+          {kind === 'timer' && (
+            <HabitTimeControl habitId={id} scheduledTime={scheduledTime} />
+          )}
+        </div>
       </header>
 
       {/* primary: current streak + today control */}

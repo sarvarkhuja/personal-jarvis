@@ -9,6 +9,7 @@ import {
   type HabitForModel,
 } from '@/lib/domain/habit-consistency';
 import type { FrequencyJson } from '@/lib/schemas/habits';
+import { groupHabitsByDayPart } from '@/lib/domain/day-part';
 import { AddHabitSheet } from '@/components/habits/AddHabitSheet';
 import { HabitCard } from '@/components/habits/HabitCard';
 import { HabitsConsistencyInstrument } from '@/components/habits/HabitsConsistencyInstrument';
@@ -19,7 +20,7 @@ const STRIP_DAYS = 14;
 type HabitRecord = {
   id: string;
   name: string;
-  emoji: string | null;
+  scheduled_time: string | null;
   kind: 'check' | 'counter' | 'timer';
   color: string | null;
   frequency_json: FrequencyJson;
@@ -53,7 +54,7 @@ export default async function HabitsPage() {
   const [habitsResult, logsResult, goalsResult] = await Promise.all([
     supabase
       .from('habits')
-      .select('id, name, emoji, kind, color, frequency_json, archived_at, is_active, created_at')
+      .select('id, name, kind, color, frequency_json, scheduled_time, archived_at, is_active, created_at')
       .eq('user_id', userId)
       .is('archived_at', null)
       .order('created_at', { ascending: true }),
@@ -94,6 +95,8 @@ export default async function HabitsPage() {
       strip: buildHabitStrip(dates, h.frequency_json, today, STRIP_DAYS),
     };
   });
+
+  const sections = groupHabitsByDayPart(cards, (c) => c.habit.scheduled_time);
 
   const model = buildConsistencyModel(
     cards.map<HabitForModel>((c) => ({
@@ -138,27 +141,37 @@ export default async function HabitsPage() {
         <div className="space-y-4">
           <HabitsConsistencyInstrument model={model} windowDays={WINDOW_DAYS} />
 
-          <div
-            data-testid="habits-list"
-            className="columns-1 gap-4 md:columns-2 2xl:columns-3"
-          >
-            {cards.map((c) => (
-              <HabitCard
-                key={c.habit.id}
-                habit={{
-                  id: c.habit.id,
-                  name: c.habit.name,
-                  emoji: c.habit.emoji,
-                  kind: c.habit.kind,
-                  frequency: c.habit.frequency_json,
-                }}
-                currentStreak={c.streak.currentStreak}
-                longestStreak={c.streak.longestStreak}
-                completionRate30d={c.streak.completionRate30d}
-                strip={c.strip}
-                dueToday={c.dueToday}
-                doneToday={c.doneToday}
-              />
+          <div data-testid="habits-list" className="space-y-8">
+            {sections.map((section) => (
+              <section
+                key={section.part}
+                data-testid={`habits-section-${section.part}`}
+              >
+                <h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.08em] text-text-disabled">
+                  {section.label}
+                  <span className="text-text-secondary"> · {section.items.length}</span>
+                </h2>
+                <div className="columns-1 gap-4 md:columns-2 2xl:columns-3">
+                  {section.items.map((c) => (
+                    <HabitCard
+                      key={c.habit.id}
+                      habit={{
+                        id: c.habit.id,
+                        name: c.habit.name,
+                        kind: c.habit.kind,
+                        frequency: c.habit.frequency_json,
+                      }}
+                      scheduledTime={c.habit.scheduled_time}
+                      currentStreak={c.streak.currentStreak}
+                      longestStreak={c.streak.longestStreak}
+                      completionRate30d={c.streak.completionRate30d}
+                      strip={c.strip}
+                      dueToday={c.dueToday}
+                      doneToday={c.doneToday}
+                    />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </div>
