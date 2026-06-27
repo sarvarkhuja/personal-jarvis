@@ -40,6 +40,7 @@ export async function createMedication(input: CreateMedicationInput) {
   if (error) failed('createMedication', error);
   revalidatePath('/pills');
   revalidatePath('/today');
+  revalidatePath('/');
   return data;
 }
 
@@ -56,6 +57,7 @@ export async function archiveMedication(input: ArchiveMedicationInput) {
   if (error) failed('archiveMedication', error);
   revalidatePath('/pills');
   revalidatePath('/today');
+  revalidatePath('/');
 }
 
 export async function deleteMedication(input: DeleteMedicationInput) {
@@ -71,6 +73,7 @@ export async function deleteMedication(input: DeleteMedicationInput) {
   if (error) failed('deleteMedication', error);
   revalidatePath('/pills');
   revalidatePath('/today');
+  revalidatePath('/');
 }
 
 export async function toggleMedicationCompletion(input: ToggleMedicationInput) {
@@ -86,4 +89,5 @@ export async function toggleMedicationCompletion(input: ToggleMedicationInput) {
   if (error) failed('toggleMedicationCompletion', error);
   revalidatePath('/pills');
   revalidatePath('/today');
+  revalidatePath('/');
 }

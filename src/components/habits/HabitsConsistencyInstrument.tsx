@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import {
   formatDayLabel,
@@ -9,6 +10,7 @@ import {
 interface Props {
   model: ConsistencyModel;
   windowDays: number;
+  href?: string;
 }
 
 /**
@@ -17,7 +19,7 @@ interface Props {
  * ratio. Green is the page's single colour and means exactly one thing:
  * "fully showed up" — a perfect day, or all of today's habits done.
  */
-export function HabitsConsistencyInstrument({ model, windowDays }: Props) {
+export function HabitsConsistencyInstrument({ model, windowDays, href }: Props) {
   const [hover, setHover] = useState<number | null>(null);
   const { days, dueToday, doneToday, totalHabits, perfectDays, best } = model;
 
@@ -38,10 +40,20 @@ export function HabitsConsistencyInstrument({ model, windowDays }: Props) {
         <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary">
           [ CONSISTENCY · {windowDays}D ]
         </span>
-        <span className={`font-mono text-[11px] uppercase tracking-[0.08em] ${verdict.cls}`}>
-          <span className="sr-only">Today: </span>
-          {verdict.text}
-        </span>
+        <div className="flex items-baseline gap-3">
+          <span className={`font-mono text-[11px] uppercase tracking-[0.08em] ${verdict.cls}`}>
+            <span className="sr-only">Today: </span>
+            {verdict.text}
+          </span>
+          {href && (
+            <Link
+              href={href}
+              className="font-mono text-[10px] uppercase tracking-[0.08em] text-text-disabled transition-colors hover:text-text-primary"
+            >
+              HABITS →
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* hero readout — the only Doto on the page */}

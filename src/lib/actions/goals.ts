@@ -52,6 +52,7 @@ export async function createGoal(input: CreateGoalInput) {
   if (error) failed('createGoal', error);
   revalidatePath('/goals');
   revalidatePath('/today');
+  revalidatePath('/');
   return data;
 }
 
@@ -77,6 +78,7 @@ export async function updateGoal(input: UpdateGoalInput) {
   if (error) failed('updateGoal', error);
   revalidatePath('/goals');
   revalidatePath('/today');
+  revalidatePath('/');
   return data;
 }
 
@@ -93,6 +95,7 @@ export async function setGoalStatus(input: SetGoalStatusInput) {
   if (error) failed('setGoalStatus', error);
   revalidatePath('/goals');
   revalidatePath('/today');
+  revalidatePath('/');
 }
 
 export async function linkGoalToHabit(input: LinkGoalToHabitInput) {
@@ -108,6 +111,7 @@ export async function linkGoalToHabit(input: LinkGoalToHabitInput) {
   if (error) failed('linkGoalToHabit', error);
   revalidatePath('/goals');
   revalidatePath('/today');
+  revalidatePath('/');
 }
 
 export async function addSubGoal(input: AddSubGoalInput) {
@@ -128,4 +132,5 @@ export async function deleteGoal(input: DeleteGoalInput) {
   if (error) failed('deleteGoal', error);
   revalidatePath('/goals');
   revalidatePath('/today');
+  revalidatePath('/');
 }

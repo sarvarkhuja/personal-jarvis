@@ -1,52 +1,264 @@
-import { createClient } from '@/lib/supabase/server'
-import { JarvisDashboard } from '@/components/dashboard/JarvisDashboard'
-import { requireUserId } from '@/lib/auth/server-user'
+import { createClient } from '@/lib/supabase/server';
+import { requireUserId } from '@/lib/auth/server-user';
+import { toUserDate, userDayBounds } from '@/lib/domain/timezone';
+import { formatInTimeZone } from 'date-fns-tz';
+import { computeStreak } from '@/lib/domain/streak';
+import {
+  addDaysISO,
+  buildConsistencyModel,
+  type HabitForModel,
+} from '@/lib/domain/habit-consistency';
+import {
+  addDays,
+  buildFocusMetrics,
+  type FocusSessionLite,
+} from '@/lib/utils/focus-metrics';
+import type { FrequencyJson } from '@/lib/schemas/habits';
+import {
+  monthSpendSummary,
+  pillWeekAdherence,
+} from '@/lib/domain/home-overview';
+import { HabitsConsistencyInstrument } from '@/components/habits/HabitsConsistencyInstrument';
+import { TopGoalsWidget } from '@/components/today/TopGoalsWidget';
+import { UpcomingEventsWidget } from '@/components/today/UpcomingEventsWidget';
+import { ExpensesGlance } from '@/components/home/ExpensesGlance';
+import { FocusGlance } from '@/components/home/FocusGlance';
+import { PillsGlance } from '@/components/home/PillsGlance';
 
-export default async function DashboardPage() {
-  const userId = await requireUserId()
-  const supabase = await createClient()
+const HABIT_WINDOW_DAYS = 30;
+const FOCUS_WINDOW_MS = 70 * 24 * 60 * 60 * 1000;
 
-  const sixMonthsAgo = new Date()
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
-  const sixMonthsAgoStr = sixMonthsAgo.toISOString().split('T')[0]
+export default async function HomePage() {
+  const userId = await requireUserId();
+  const supabase = await createClient();
 
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name, timezone')
+    .eq('id', userId)
+    .single();
+  const displayName =
+    (profile as { display_name?: string | null } | null)?.display_name ?? null;
+  const tz = (profile as { timezone?: string } | null)?.timezone ?? 'UTC';
+
+  const now = new Date();
+  const today = toUserDate(now, tz);
+  const tomorrow = addDaysISO(today, 1);
+
+  // Query windows.
+  const habitSince = addDaysISO(today, -60);
+  const pillSince = addDaysISO(today, -6);
+  const { startUtc } = userDayBounds(today, tz);
+  const { endUtc: tomorrowEndUtc } = userDayBounds(tomorrow, tz);
+  const sixMonthsAgo = new Date(now);
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const sixMonthsAgoStr = sixMonthsAgo.toISOString().slice(0, 10);
+  const focusSinceIso = new Date(now.getTime() - FOCUS_WINDOW_MS).toISOString();
 
   const [
-    profileResult,
-    goalsResult,
-    expensesResult,
-    focusAreasResult,
-    focusCheckinsResult,
     habitsResult,
-    habitCompletionsResult,
-    disciplineScoresResult,
+    habitLogsResult,
+    activeGoalsResult,
+    expensesResult,
+    medicationsResult,
+    medicationLogsResult,
+    eventsResult,
+    focusSessionsResult,
   ] = await Promise.all([
-    supabase.from('profiles').select('display_name').eq('id', userId).single(),
-    supabase.from('goals').select('id, user_id, title, description, target_value, current_value, unit, deadline, status, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
-    supabase.from('expenses').select('id, user_id, amount, currency, category, description, date, created_at').eq('user_id', userId).gte('date', sixMonthsAgoStr).order('date', { ascending: false }),
-    supabase.from('focus_areas').select('id, user_id, name, emoji, sort_order, is_active, created_at').eq('user_id', userId).order('sort_order'),
-    supabase.from('focus_checkins').select('id, user_id, focus_area_id, date, created_at').eq('user_id', userId).gte('date', thirtyDaysAgoStr),
-    supabase.from('habits').select('id, user_id, goal_id, name, emoji, sort_order, is_active, created_at').eq('user_id', userId).order('sort_order'),
-    supabase.from('habit_completions').select('id, user_id, habit_id, date, created_at').eq('user_id', userId).gte('date', thirtyDaysAgoStr),
-    supabase.from('discipline_scores').select('id, user_id, date, score, notes, created_at').eq('user_id', userId).gte('date', thirtyDaysAgoStr).order('date', { ascending: false }),
-  ])
+    supabase
+      .from('habits')
+      .select('id, name, frequency_json')
+      .eq('user_id', userId)
+      .is('archived_at', null)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('habit_logs')
+      .select('habit_id, log_date')
+      .eq('user_id', userId)
+      .gte('log_date', habitSince),
+    supabase
+      .from('goals')
+      .select('id, title, status, target_date')
+      .eq('user_id', userId)
+      .eq('status', 'active'),
+    supabase
+      .from('expenses')
+      .select('amount, date')
+      .eq('user_id', userId)
+      .gte('date', sixMonthsAgoStr),
+    supabase
+      .from('medications')
+      .select('id, name')
+      .eq('user_id', userId)
+      .is('archived_at', null),
+    supabase
+      .from('medication_logs')
+      .select('medication_id, log_date')
+      .eq('user_id', userId)
+      .gte('log_date', pillSince),
+    supabase
+      .from('events')
+      .select('id, title, starts_at, ends_at, kind')
+      .eq('user_id', userId)
+      .gte('starts_at', startUtc.toISOString())
+      .lt('starts_at', tomorrowEndUtc.toISOString())
+      .order('starts_at', { ascending: true }),
+    supabase
+      .from('focus_sessions')
+      .select('id, started_at, ended_at, planned_minutes, completed, intent')
+      .eq('user_id', userId)
+      .gte('started_at', focusSinceIso)
+      .order('started_at', { ascending: false }),
+  ]);
 
-  const today = new Date().toISOString().split('T')[0]
+  // ── Habit consistency hero ──────────────────────────────────────────────
+  const habits = (habitsResult.data ?? []) as Array<{
+    id: string;
+    name: string;
+    frequency_json: FrequencyJson;
+  }>;
+  const habitLogs = (habitLogsResult.data ?? []) as Array<{
+    habit_id: string;
+    log_date: string;
+  }>;
+  const logsByHabit = new Map<string, string[]>();
+  for (const l of habitLogs) {
+    if (!logsByHabit.has(l.habit_id)) logsByHabit.set(l.habit_id, []);
+    logsByHabit.get(l.habit_id)!.push(l.log_date);
+  }
+  const habitModel = buildConsistencyModel(
+    habits.map<HabitForModel>((h) => {
+      const dates = logsByHabit.get(h.id) ?? [];
+      return {
+        id: h.id,
+        name: h.name,
+        frequency: h.frequency_json,
+        logDates: dates,
+        currentStreak: computeStreak(dates, h.frequency_json, today).currentStreak,
+      };
+    }),
+    today,
+    HABIT_WINDOW_DAYS,
+  );
+
+  // ── Goals ────────────────────────────────────────────────────────────────
+  const activeGoals = (activeGoalsResult.data ?? []) as Array<{
+    id: string;
+    title: string;
+    status: 'active';
+    target_date: string | null;
+  }>;
+
+  // ── Expenses ───────────────────────────────────────────────────────────────
+  const expenses = (expensesResult.data ?? []) as Array<{
+    amount: number;
+    date: string;
+  }>;
+  const spend = monthSpendSummary(expenses, today);
+
+  // ── Pills ──────────────────────────────────────────────────────────────────
+  const medications = (medicationsResult.data ?? []) as Array<{
+    id: string;
+    name: string;
+  }>;
+  const medicationLogs = (medicationLogsResult.data ?? []) as Array<{
+    medication_id: string;
+    log_date: string;
+  }>;
+  const pills = pillWeekAdherence(medications, medicationLogs, today);
+
+  // ── Events (today + tomorrow agenda) ────────────────────────────────────────
+  const upcomingEvents = (eventsResult.data ?? []) as Array<{
+    id: string;
+    title: string;
+    starts_at: string;
+    ends_at: string | null;
+    kind: 'event' | 'appointment' | 'milestone';
+  }>;
+  const todayEvents = upcomingEvents
+    .map((e) => ({ ...e, localDate: toUserDate(e.starts_at, tz) }))
+    .filter((e) => e.localDate === today);
+  const tomorrowEvents = upcomingEvents
+    .map((e) => ({ ...e, localDate: toUserDate(e.starts_at, tz) }))
+    .filter((e) => e.localDate === tomorrow);
+
+  // ── Focus (this week + streak) ──────────────────────────────────────────────
+  const focusWindowStart = addDays(today, -60);
+  const focusSessions: FocusSessionLite[] = (
+    (focusSessionsResult.data ?? []) as Array<{
+      id: string;
+      started_at: string;
+      ended_at: string | null;
+      planned_minutes: number;
+      completed: boolean;
+      intent: string | null;
+    }>
+  )
+    .map((r) => {
+      const ended = r.ended_at != null;
+      const startedAtMs = new Date(r.started_at).getTime();
+      const durationMin = !ended
+        ? 0
+        : r.completed
+          ? r.planned_minutes
+          : Math.max(
+              0,
+              Math.round(
+                (new Date(r.ended_at as string).getTime() - startedAtMs) / 60000,
+              ),
+            );
+      return {
+        id: r.id,
+        localDate: toUserDate(r.started_at, tz),
+        startedAtMs,
+        durationMin,
+        plannedMinutes: r.planned_minutes,
+        completed: r.completed,
+        ended,
+        intent: r.intent,
+        goalLabel: null,
+      };
+    })
+    .filter((s) => s.localDate >= focusWindowStart);
+  const focusMetrics = buildFocusMetrics(focusSessions, today);
+
+  const dateLabel = formatInTimeZone(now, tz, 'EEE d MMMM yyyy').toUpperCase();
 
   return (
-    <JarvisDashboard
-      displayName={profileResult.data?.display_name ?? null}
-      goals={goalsResult.data ?? []}
-      expenses={expensesResult.data ?? []}
-      focusAreas={focusAreasResult.data ?? []}
-      focusCheckins={focusCheckinsResult.data ?? []}
-      habits={habitsResult.data ?? []}
-      habitCompletions={habitCompletionsResult.data ?? []}
-      disciplineScores={disciplineScoresResult.data ?? []}
-      today={today}
-    />
-  )
+    <main className="w-full space-y-4 px-4 py-8">
+      <header className="mb-2 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-mono text-3xl font-bold uppercase leading-none tracking-[0.2em] text-text-primary">
+            JARVIS
+          </h1>
+          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary">
+            {dateLabel}
+          </p>
+        </div>
+        {displayName && (
+          <div className="flex size-10 shrink-0 items-center justify-center border border-border-visible font-mono text-[13px] uppercase text-text-primary">
+            {displayName[0].toUpperCase()}
+          </div>
+        )}
+      </header>
+
+      <HabitsConsistencyInstrument
+        model={habitModel}
+        windowDays={HABIT_WINDOW_DAYS}
+        href="/habits"
+      />
+
+      <div className="gap-4 lg:columns-2 xl:columns-3">
+        <TopGoalsWidget goals={activeGoals} today={today} />
+        <ExpensesGlance summary={spend} />
+        <FocusGlance week={focusMetrics.week} streakCount={focusMetrics.streak.count} />
+        <PillsGlance adherence={pills} />
+        <UpcomingEventsWidget
+          todayEvents={todayEvents}
+          tomorrowEvents={tomorrowEvents}
+          tz={tz}
+        />
+      </div>
+    </main>
+  );
 }

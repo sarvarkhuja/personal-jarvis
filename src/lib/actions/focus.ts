@@ -43,6 +43,7 @@ export async function startFocusSession(input: StartFocusSessionInput) {
   if (error) failed('startFocusSession', error);
   revalidatePath('/focus');
   revalidatePath('/today');
+  revalidatePath('/');
   return data;
 }
 
@@ -101,6 +102,7 @@ export async function endFocusSession(input: EndFocusSessionInput) {
 
   revalidatePath('/focus');
   revalidatePath('/today');
+  revalidatePath('/');
   revalidatePath('/habits');
   return { id: parsed.id, ended_at: endedAt, completed: parsed.completed };
 }

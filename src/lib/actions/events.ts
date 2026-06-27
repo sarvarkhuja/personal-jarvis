@@ -46,6 +46,7 @@ export async function createEvent(input: CreateEventInput) {
   if (error) failed('createEvent', error);
   revalidatePath('/plans');
   revalidatePath('/today');
+  revalidatePath('/');
   return data;
 }
 
@@ -73,6 +74,7 @@ export async function updateEvent(input: UpdateEventInput) {
   if (error) failed('updateEvent', error);
   revalidatePath('/plans');
   revalidatePath('/today');
+  revalidatePath('/');
   return data;
 }
 
@@ -89,4 +91,5 @@ export async function deleteEvent(input: DeleteEventInput) {
   if (error) failed('deleteEvent', error);
   revalidatePath('/plans');
   revalidatePath('/today');
+  revalidatePath('/');
 }
