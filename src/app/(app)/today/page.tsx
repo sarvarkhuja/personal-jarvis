@@ -43,7 +43,7 @@ export default async function TodayPage() {
   ] = await Promise.all([
     supabase
       .from('habits')
-      .select('id, name, emoji, kind, frequency_json')
+      .select('id, name, kind, frequency_json')
       .eq('user_id', userId)
       .is('archived_at', null),
     supabase
@@ -86,7 +86,6 @@ export default async function TodayPage() {
   const habits = (habitsResult.data ?? []) as Array<{
     id: string;
     name: string;
-    emoji: string | null;
     kind: 'check' | 'counter' | 'timer';
     frequency_json: FrequencyJson;
   }>;

@@ -15,7 +15,6 @@ export type EventListItem = {
 export type HabitDayItem = {
   id: string;
   name: string;
-  emoji: string | null;
   logged: boolean;
 };
 
@@ -117,7 +116,7 @@ export function WeekList({
                     ].join(' ')}
                     title={h.logged ? `${h.name} — done` : `${h.name} — due`}
                   >
-                    <span aria-hidden>{h.emoji ?? (h.logged ? '✓' : '○')}</span>
+                    <span aria-hidden>{h.logged ? '✓' : '○'}</span>
                     <span>{h.name}</span>
                   </li>
                 ))}

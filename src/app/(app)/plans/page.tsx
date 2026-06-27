@@ -3,6 +3,7 @@ import { requireUserId } from '@/lib/auth/server-user';
 import { toUserDate } from '@/lib/domain/timezone';
 import { monthAnchor, nextMonth } from '@/lib/domain/calendar';
 import { isHabitDueOn } from '@/lib/domain/schedule';
+import { groupLoggedHabitIdsByDate } from '@/lib/domain/habit-logs';
 import { formatInTimeZone } from 'date-fns-tz';
 import type { FrequencyJson } from '@/lib/schemas/habits';
 import {
@@ -70,7 +71,7 @@ export default async function PlansPage({
         .order('title', { ascending: true }),
       supabase
         .from('habits')
-        .select('id, name, emoji, color, frequency_json')
+        .select('id, name, color, frequency_json')
         .eq('user_id', userId)
         .is('archived_at', null)
         .order('created_at', { ascending: true }),
@@ -96,7 +97,6 @@ export default async function PlansPage({
   const habits = (habitsResult.data ?? []) as Array<{
     id: string;
     name: string;
-    emoji: string | null;
     color: string | null;
     frequency_json: FrequencyJson;
   }>;
@@ -108,15 +108,13 @@ export default async function PlansPage({
   const habitsForGrid: HabitLite[] = habits.map((h) => ({
     id: h.id,
     name: h.name,
-    emoji: h.emoji,
     color: h.color,
   }));
 
-  const habitLogsByDate = new Map<string, string[]>();
-  for (const l of habitLogs) {
-    if (!habitLogsByDate.has(l.log_date)) habitLogsByDate.set(l.log_date, []);
-    habitLogsByDate.get(l.log_date)!.push(l.habit_id);
-  }
+  // Distinct habit ids per day: a habit may have several rows on one date
+  // (counter +1s, multiple timer sessions, or a double-tapped check), but the
+  // grid renders one marker per habit, so duplicates would collide on key.
+  const habitLogsByDate = groupLoggedHabitIdsByDate(habitLogs);
 
   const eventsForGrid: EventLite[] = events.map((e) => ({
     id: e.id,
@@ -158,7 +156,6 @@ export default async function PlansPage({
       .map((h) => ({
         id: h.id,
         name: h.name,
-        emoji: h.emoji,
         logged: loggedSet.has(h.id),
       }));
     const label =

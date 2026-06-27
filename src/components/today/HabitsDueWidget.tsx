@@ -6,7 +6,6 @@ import { WidgetCard, WidgetCount, WidgetEmpty, WidgetLink } from './WidgetCard';
 type Habit = {
   id: string;
   name: string;
-  emoji: string | null;
   kind: 'check' | 'counter' | 'timer';
   frequency_json: FrequencyJson;
 };
@@ -50,9 +49,6 @@ export function HabitsDueWidget({
                 className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span aria-hidden className="text-base leading-none">
-                    {h.emoji ?? '·'}
-                  </span>
                   <span className="truncate font-sans text-[14px] text-text-primary">
                     {h.name}
                   </span>

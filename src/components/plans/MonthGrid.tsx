@@ -15,7 +15,6 @@ export type EventLite = {
 export type HabitLite = {
   id: string;
   name: string;
-  emoji: string | null;
   color: string | null;
 };
 
@@ -125,7 +124,7 @@ export function MonthGrid({
                       title={`${h.name} ✓`}
                       data-testid={`cal-habit-${date}-${h.id}`}
                     >
-                      {h.emoji ?? '✓'}
+                      ✓
                     </span>
                   ))}
                   {loggedHabits.length > 4 && (
