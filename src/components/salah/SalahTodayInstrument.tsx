@@ -6,6 +6,7 @@ export type CellVM = {
   timeLabel: string; // 'HH:mm'
   state: PrayerCellState;
   status: SalahStatus | null;
+  jamaat: string | null;
 };
 
 const STATE_DOT: Record<PrayerCellState, string> = {

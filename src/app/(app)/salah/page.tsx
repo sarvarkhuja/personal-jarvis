@@ -61,13 +61,14 @@ export default async function SalahPage() {
     timeLabel: formatInTimeZone(c.start, cfg.timezone, 'HH:mm'),
     state: c.state,
     status: c.status,
+    jamaat: c.jamaat,
   }));
   const dateLabel = formatInTimeZone(now, cfg.timezone, 'EEE d MMM').toUpperCase();
   const nextLabel = model.next
     ? (model.next.name === 'dhuhr'
-        ? cells.find((c) => c.name === 'dhuhr')?.label ?? 'Dhuhr'
-        : cells.find((c) => c.name === model.next!.name)?.label ??
-          model.next.name)
+      ? cells.find((c) => c.name === 'dhuhr')?.label ?? 'Dhuhr'
+      : cells.find((c) => c.name === model.next!.name)?.label ??
+      model.next.name)
     : null;
   const nextAt = model.next
     ? formatInTimeZone(model.next.at, cfg.timezone, 'HH:mm')

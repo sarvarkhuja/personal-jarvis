@@ -1,4 +1,5 @@
--- 022_salah.sql
+-- supabase/migrations/022_salah.sql
+-- Run in Supabase Dashboard → SQL Editor (live project).
 -- Salah (five daily prayers) tracker. Follows the habit_logs pattern:
 -- references auth.users(id), split RLS policies, log_date derived server-side.
 --
@@ -7,6 +8,10 @@
 -- from the absence of a row for a prayer whose window has passed.
 -- salah_settings: optional per-user calc config. If absent, code falls back
 -- to TASHKENT_DEFAULT, so no trigger/auto-seed is needed.
+--
+-- Safe to re-run: tables/indexes use IF NOT EXISTS; policies are dropped first.
+
+BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.salah_logs (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -25,6 +30,11 @@ CREATE INDEX IF NOT EXISTS idx_salah_logs_user_date
   ON public.salah_logs (user_id, log_date DESC);
 
 ALTER TABLE public.salah_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "salah_logs_select_own" ON public.salah_logs;
+DROP POLICY IF EXISTS "salah_logs_insert_own" ON public.salah_logs;
+DROP POLICY IF EXISTS "salah_logs_update_own" ON public.salah_logs;
+DROP POLICY IF EXISTS "salah_logs_delete_own" ON public.salah_logs;
 
 CREATE POLICY "salah_logs_select_own" ON public.salah_logs
   FOR SELECT USING (auth.uid() = user_id);
@@ -58,6 +68,11 @@ CREATE TABLE IF NOT EXISTS public.salah_settings (
 
 ALTER TABLE public.salah_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "salah_settings_select_own" ON public.salah_settings;
+DROP POLICY IF EXISTS "salah_settings_insert_own" ON public.salah_settings;
+DROP POLICY IF EXISTS "salah_settings_update_own" ON public.salah_settings;
+DROP POLICY IF EXISTS "salah_settings_delete_own" ON public.salah_settings;
+
 CREATE POLICY "salah_settings_select_own" ON public.salah_settings
   FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "salah_settings_insert_own" ON public.salah_settings
@@ -66,3 +81,12 @@ CREATE POLICY "salah_settings_update_own" ON public.salah_settings
   FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "salah_settings_delete_own" ON public.salah_settings
   FOR DELETE USING (auth.uid() = user_id);
+
+COMMIT;
+
+-- Reload PostgREST schema cache so the API sees the new tables immediately:
+NOTIFY pgrst, 'reload schema';
+
+-- Verify (optional):
+-- SELECT to_regclass('public.salah_logs') AS salah_logs,
+--        to_regclass('public.salah_settings') AS salah_settings;
