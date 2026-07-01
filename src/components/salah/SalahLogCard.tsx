@@ -101,11 +101,10 @@ function PrayerRow({ cell, today }: { cell: CellVM; today: string }) {
               onClick={() =>
                 run(() => updateSalahLog({ prayer, log_date: today, status: s }))
               }
-              className={`h-6 rounded-full px-2.5 font-mono text-[9px] uppercase tracking-[0.06em] transition-colors disabled:opacity-40 ${
-                cell.status === s
-                  ? 'bg-text-display text-background'
-                  : 'border border-border-visible text-text-disabled hover:text-text-primary'
-              }`}
+              className={`h-6 rounded-full px-2.5 font-mono text-[9px] uppercase tracking-[0.06em] transition-colors disabled:opacity-40 ${cell.status === s
+                ? 'bg-text-display text-background'
+                : 'border border-border-visible text-text-disabled hover:text-text-primary'
+                }`}
             >
               {STATUS_LABEL[s]}
             </button>
@@ -116,10 +115,13 @@ function PrayerRow({ cell, today }: { cell: CellVM; today: string }) {
               key={j}
               type="button"
               disabled={pending}
-              onClick={() =>
-                run(() => updateSalahLog({ prayer, log_date: today, jamaat: j }))
-              }
-              className="h-6 rounded-full border border-border-visible px-2.5 font-mono text-[9px] uppercase tracking-[0.06em] text-text-disabled transition-colors hover:text-text-primary disabled:opacity-40"
+              onClick={() => {
+                run(() => updateSalahLog({ prayer, log_date: today, jamaat: j }));
+              }}
+              className={`h-6 rounded-full px-2.5 font-mono text-[9px] uppercase tracking-[0.06em] transition-colors disabled:opacity-40 ${cell.jamaat === j
+                ? 'bg-text-display text-background'
+                : 'border border-border-visible text-text-disabled hover:text-text-primary'
+                }`}
             >
               {j}
             </button>
