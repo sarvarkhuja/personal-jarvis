@@ -299,6 +299,7 @@ export default async function HomePage() {
 
   // ── Salah (today) ────────────────────────────────────────────────────────
   const salahCfg = await loadSalahConfig(supabase, userId);
+  const salahToday = toUserDate(now, salahCfg.timezone);
   const salahRows = (salahLogsResult.data ?? []) as Array<{
     prayer: PrayerName;
     log_date: string;
@@ -316,10 +317,10 @@ export default async function HomePage() {
   }
   const salahSummary = salahDaySummary(
     salahCfg,
-    salahByDate.get(today) ?? [],
+    salahByDate.get(salahToday) ?? [],
     salahByDate,
     now,
-    today,
+    salahToday,
   );
 
   const dateLabel = formatInTimeZone(now, tz, 'EEE d MMMM yyyy').toUpperCase();

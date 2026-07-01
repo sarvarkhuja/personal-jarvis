@@ -11,6 +11,8 @@ const TABLES = [
   'goals',
   'events',
   'focus_sessions',
+  'salah_logs',
+  'salah_settings',
 ] as const;
 
 export async function GET() {
