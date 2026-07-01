@@ -6,7 +6,11 @@ import {
   prayerWindowsForDay,
   classifyLog,
   isMissed,
+  buildDayModel,
+  buildSalahConsistency,
+  salahDaySummary,
   type PrayerWindow,
+  type LoggedPrayer,
 } from '@/lib/domain/salah';
 
 const TZ = 'Asia/Tashkent';
@@ -102,5 +106,87 @@ describe('classifyLog / isMissed', () => {
     expect(isMissed(new Date('2026-07-01T03:00:00Z'), w, false)).toBe(true);
     expect(isMissed(new Date('2026-07-01T03:00:00Z'), w, true)).toBe(false);
     expect(isMissed(new Date('2026-07-01T02:59:00Z'), w, false)).toBe(false);
+  });
+});
+
+const full = (): LoggedPrayer[] =>
+  (['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'] as const).map((prayer) => ({
+    prayer,
+    status: 'on_time' as const,
+    jamaat: 'masjid' as const,
+  }));
+
+describe('buildDayModel', () => {
+  it('marks logged prayers prayed and derives states for the rest', () => {
+    // 2026-07-01 13:00 UTC = 18:00 Tashkent: Fajr/Dhuhr passed, Asr around now.
+    // (Dhuhr's window runs until Asr start, ~17:42 local in midsummer Tashkent,
+    // so 14:00 local is too early to call Dhuhr missed — 18:00 local is not.)
+    const now = new Date('2026-07-01T13:00:00Z');
+    const logs: LoggedPrayer[] = [
+      { prayer: 'fajr', status: 'on_time', jamaat: 'masjid' },
+    ];
+    const m = buildDayModel(now, TASHKENT_DEFAULT, logs);
+    expect(m.date).toBe('2026-07-01');
+    expect(m.cells).toHaveLength(5);
+    const fajr = m.cells.find((c) => c.name === 'fajr')!;
+    expect(fajr.state).toBe('prayed');
+    expect(fajr.status).toBe('on_time');
+    // Dhuhr window passed with no log → missed.
+    expect(m.cells.find((c) => c.name === 'dhuhr')!.state).toBe('missed');
+    // Isha is still upcoming this evening.
+    expect(m.cells.find((c) => c.name === 'isha')!.state).toBe('upcoming');
+  });
+
+  it("labels Friday's Dhuhr as Jumu'ah", () => {
+    // 2026-01-02 is a Friday.
+    const fri = buildDayModel(new Date('2026-01-02T06:00:00Z'), TASHKENT_DEFAULT, []);
+    expect(fri.cells.find((c) => c.name === 'dhuhr')!.label).toBe("Jumu'ah");
+    // 2026-01-03 is a Saturday.
+    const sat = buildDayModel(new Date('2026-01-03T06:00:00Z'), TASHKENT_DEFAULT, []);
+    expect(sat.cells.find((c) => c.name === 'dhuhr')!.label).toBe('Dhuhr');
+  });
+
+  it('after Isha, next is tomorrow Fajr', () => {
+    // 2026-07-01 18:00 UTC = 23:00 Tashkent, after Isha (~21:45).
+    const m = buildDayModel(new Date('2026-07-01T18:00:00Z'), TASHKENT_DEFAULT, []);
+    expect(m.next?.name).toBe('fajr');
+    expect(m.next?.isTomorrow).toBe(true);
+  });
+});
+
+describe('buildSalahConsistency', () => {
+  const today = '2026-07-01';
+  const now = new Date('2026-07-01T18:00:00Z'); // all of today's windows passed
+  it('counts a perfect-day streak and 7-day week', () => {
+    const byDate = new Map<string, LoggedPrayer[]>();
+    for (const d of ['2026-06-29', '2026-06-30', '2026-07-01']) byDate.set(d, full());
+    const c = buildSalahConsistency(byDate, today, now, TASHKENT_DEFAULT);
+    expect(c.streakCurrent).toBe(3);
+    expect(c.week).toHaveLength(7);
+    expect(c.onTimeRate30d).toBe(1);
+    expect(c.jamaatRate30d).toBe(1);
+  });
+
+  it('reports missed prayers for empty past days', () => {
+    const c = buildSalahConsistency(new Map(), today, now, TASHKENT_DEFAULT);
+    expect(c.streakCurrent).toBe(0);
+    expect(c.missedCount30d).toBeGreaterThan(0);
+    expect(c.qadaCount30d).toBe(0);
+  });
+});
+
+describe('salahDaySummary', () => {
+  it('summarizes today for the home glance', () => {
+    const byDate = new Map<string, LoggedPrayer[]>([['2026-07-01', full()]]);
+    const s = salahDaySummary(
+      TASHKENT_DEFAULT,
+      full(),
+      byDate,
+      new Date('2026-07-01T18:00:00Z'),
+      '2026-07-01',
+    );
+    expect(s.prayedCount).toBe(5);
+    expect(s.onTimeRate7d).toBe(1);
+    expect(s.nextLabel).toBe('Fajr'); // after Isha → tomorrow Fajr
   });
 });
