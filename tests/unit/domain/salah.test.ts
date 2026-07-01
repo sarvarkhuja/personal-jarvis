@@ -173,6 +173,18 @@ describe('buildSalahConsistency', () => {
     expect(c.missedCount30d).toBeGreaterThan(0);
     expect(c.qadaCount30d).toBe(0);
   });
+
+  it('does not count a day of duplicate same-prayer logs as perfect', () => {
+    const dupDay: LoggedPrayer[] = [0, 1, 2, 3, 4].map(() => ({
+      prayer: 'fajr' as const,
+      status: 'on_time' as const,
+      jamaat: null,
+    }));
+    const byDate = new Map<string, LoggedPrayer[]>([['2026-07-01', dupDay]]);
+    const c = buildSalahConsistency(byDate, today, now, TASHKENT_DEFAULT);
+    expect(c.streakCurrent).toBe(0);
+    expect(c.streakLongest).toBe(0);
+  });
 });
 
 describe('salahDaySummary', () => {

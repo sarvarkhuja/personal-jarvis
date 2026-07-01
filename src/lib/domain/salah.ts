@@ -225,7 +225,8 @@ export type SalahConsistency = {
 };
 
 function isPerfectDay(logsByDate: Map<string, LoggedPrayer[]>, date: string): boolean {
-  return (logsByDate.get(date)?.length ?? 0) >= PRAYERS.length;
+  const logs = logsByDate.get(date) ?? [];
+  return PRAYERS.every((p) => logs.some((l) => l.prayer === p));
 }
 
 /** Streak/quality metrics over a trailing 30-day window ending at `today`. */
@@ -329,9 +330,12 @@ export function salahDaySummary(
   let tot = 0;
   for (let i = 0; i < 7; i++) {
     const date = addDaysISO(today, -i);
-    for (const l of logsByDate.get(date) ?? []) {
+    const logs = logsByDate.get(date) ?? [];
+    for (const p of PRAYERS) {
+      const log = logs.find((l) => l.prayer === p);
+      if (!log) continue;
       tot++;
-      if (l.status === 'on_time') on++;
+      if (log.status === 'on_time') on++;
     }
   }
 
