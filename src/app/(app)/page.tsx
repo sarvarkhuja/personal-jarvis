@@ -27,6 +27,15 @@ import { FocusGlance } from '@/components/home/FocusGlance';
 import { PillsGlance } from '@/components/home/PillsGlance';
 import { LiftsGlance } from '@/components/home/LiftsGlance';
 import { BodyWeightGlance } from '@/components/home/BodyWeightGlance';
+import { SalahGlance } from '@/components/home/SalahGlance';
+import { loadSalahConfig } from '@/lib/data/salah';
+import {
+  salahDaySummary,
+  type LoggedPrayer,
+  type PrayerName,
+  type SalahStatus,
+  type JamaatKind,
+} from '@/lib/domain/salah';
 import {
   weekStart,
   buildLiftRows,
@@ -79,6 +88,7 @@ export default async function HomePage() {
     focusSessionsResult,
     weeklyLiftsResult,
     bodyMetricsResult,
+    salahLogsResult,
   ] = await Promise.all([
     supabase
       .from('habits')
@@ -134,6 +144,11 @@ export default async function HomePage() {
       .select('date, weight_kg')
       .eq('user_id', userId)
       .gte('date', weightSince),
+    supabase
+      .from('salah_logs')
+      .select('prayer, log_date, status, jamaat')
+      .eq('user_id', userId)
+      .gte('log_date', habitSince),
   ]);
 
   // ── Habit consistency hero ──────────────────────────────────────────────
@@ -282,6 +297,31 @@ export default async function HomePage() {
     .filter((s) => s.localDate >= focusWindowStart);
   const focusMetrics = buildFocusMetrics(focusSessions, today);
 
+  // ── Salah (today) ────────────────────────────────────────────────────────
+  const salahCfg = await loadSalahConfig(supabase, userId);
+  const salahRows = (salahLogsResult.data ?? []) as Array<{
+    prayer: PrayerName;
+    log_date: string;
+    status: SalahStatus;
+    jamaat: JamaatKind | null;
+  }>;
+  const salahByDate = new Map<string, LoggedPrayer[]>();
+  for (const r of salahRows) {
+    if (!salahByDate.has(r.log_date)) salahByDate.set(r.log_date, []);
+    // Guard against any legacy duplicate (prayer,date) rows.
+    const day = salahByDate.get(r.log_date)!;
+    if (!day.some((l) => l.prayer === r.prayer)) {
+      day.push({ prayer: r.prayer, status: r.status, jamaat: r.jamaat });
+    }
+  }
+  const salahSummary = salahDaySummary(
+    salahCfg,
+    salahByDate.get(today) ?? [],
+    salahByDate,
+    now,
+    today,
+  );
+
   const dateLabel = formatInTimeZone(now, tz, 'EEE d MMMM yyyy').toUpperCase();
 
   return (
@@ -313,6 +353,7 @@ export default async function HomePage() {
         <ExpensesGlance summary={spend} />
         <FocusGlance week={focusMetrics.week} streakCount={focusMetrics.streak.count} />
         <PillsGlance adherence={pills} />
+        <SalahGlance summary={salahSummary} />
         <LiftsGlance rows={liftRows} loggedCount={liftsLoggedCount} />
         <BodyWeightGlance summary={bodyWeight} days={WEIGHT_TREND_DAYS} />
         <UpcomingEventsWidget
