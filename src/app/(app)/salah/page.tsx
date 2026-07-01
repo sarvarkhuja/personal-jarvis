@@ -16,6 +16,7 @@ import {
   SalahTodayInstrument,
   type CellVM,
 } from '@/components/salah/SalahTodayInstrument';
+import { SalahLogCard } from '@/components/salah/SalahLogCard';
 import { SalahStreakCard } from '@/components/salah/SalahStreakCard';
 import { SalahWeekGrid } from '@/components/salah/SalahWeekGrid';
 import { SalahMonthCard } from '@/components/salah/SalahMonthCard';
@@ -92,6 +93,7 @@ export default async function SalahPage() {
       />
 
       <div className="gap-4 lg:columns-2 xl:columns-3">
+        <SalahLogCard cells={cells} today={today} />
         <SalahStreakCard
           streakCurrent={consistency.streakCurrent}
           streakLongest={consistency.streakLongest}
