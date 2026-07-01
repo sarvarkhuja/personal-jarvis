@@ -3,7 +3,6 @@ import { formatInTimeZone } from 'date-fns-tz';
 import {
   TASHKENT_DEFAULT,
   prayerTimesForDay,
-  type SalahCalcConfig,
 } from '@/lib/domain/salah';
 
 const TZ = 'Asia/Tashkent';
