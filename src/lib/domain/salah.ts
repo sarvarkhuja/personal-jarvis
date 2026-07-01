@@ -1,4 +1,5 @@
 import { Coordinates, CalculationParameters, PrayerTimes, Madhab } from 'adhan';
+import { addDaysISO } from '@/lib/domain/habit-consistency';
 
 export const PRAYERS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'] as const;
 export type PrayerName = (typeof PRAYERS)[number];
@@ -79,4 +80,53 @@ export function prayerTimesForDay(
     maghrib: pt.maghrib,
     isha: pt.isha,
   };
+}
+
+export type PrayerWindow = { start: Date; end: Date };
+
+/** Per-prayer window [start, nextStart). Isha ends at tomorrow's Fajr. */
+export function prayerWindowsForDay(
+  localYmd: string,
+  cfg: SalahCalcConfig,
+): Record<PrayerName, PrayerWindow> {
+  const t = prayerTimesForDay(localYmd, cfg);
+  const tomorrow = prayerTimesForDay(addDaysISO(localYmd, 1), cfg);
+  return {
+    fajr: { start: t.fajr, end: t.dhuhr },
+    dhuhr: { start: t.dhuhr, end: t.asr },
+    asr: { start: t.asr, end: t.maghrib },
+    maghrib: { start: t.maghrib, end: t.isha },
+    isha: { start: t.isha, end: tomorrow.fajr },
+  };
+}
+
+/**
+ * on_time = first `lateAfterFraction` of the window; late = the tail; qada =
+ * at/after end or before start (a log with no active window is a make-up).
+ */
+export function classifyLog(
+  loggedAt: Date,
+  w: PrayerWindow,
+  lateAfterFraction: number,
+): SalahStatus {
+  const t = loggedAt.getTime();
+  const s = w.start.getTime();
+  const e = w.end.getTime();
+  if (t < s || t >= e) return 'qada';
+  const threshold = s + (e - s) * lateAfterFraction;
+  return t >= threshold ? 'late' : 'on_time';
+}
+
+/** Suggested status for a fresh tap = classify "now" against the window. */
+export function suggestStatus(
+  now: Date,
+  w: PrayerWindow,
+  lateAfterFraction: number,
+): SalahStatus {
+  return classifyLog(now, w, lateAfterFraction);
+}
+
+/** A prayer is missed when no log exists and its window has fully passed. */
+export function isMissed(now: Date, w: PrayerWindow, hasLog: boolean): boolean {
+  return !hasLog && now.getTime() >= w.end.getTime();
 }
