@@ -192,8 +192,8 @@ export function ExpensesView({ expenses, today }: ExpensesViewProps) {
 
   return (
     <div className="w-full space-y-4 px-4 py-8">
-      <div className="flex gap-4">
-        <div className="w-1/3">
+      <div className="flex flex-col gap-4 lg:flex-row">
+        <div className="w-full lg:w-1/3">
           {/* Log entry — add expense */}
           <Card title="[ LOG ENTRY ]">
             <form ref={formRef} action={handleSubmit} className="space-y-6">
@@ -325,7 +325,7 @@ export function ExpensesView({ expenses, today }: ExpensesViewProps) {
               </button>
             </form>
           </Card></div>
-        <div className="w-2/3">
+        <div className="w-full lg:w-2/3">
           {/* ── BURN INSTRUMENT — full-width signature card ──────────────────── */}
           <section className="rounded-lg border border-border bg-surface p-6 md:p-8">
             {/* Header rail: orient + verdict */}
