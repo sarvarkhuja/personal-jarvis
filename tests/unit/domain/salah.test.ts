@@ -12,6 +12,10 @@ import {
   type PrayerWindow,
   type LoggedPrayer,
 } from '@/lib/domain/salah';
+import {
+  LogSalahSchema,
+  SalahSettingsSchema,
+} from '@/lib/schemas/salah';
 
 const TZ = 'Asia/Tashkent';
 
@@ -200,5 +204,24 @@ describe('salahDaySummary', () => {
     expect(s.prayedCount).toBe(5);
     expect(s.onTimeRate7d).toBe(1);
     expect(s.nextLabel).toBe('Fajr'); // after Isha → tomorrow Fajr
+  });
+});
+
+describe('salah schemas', () => {
+  it('accepts a minimal log (prayer only)', () => {
+    const r = LogSalahSchema.parse({ prayer: 'fajr' });
+    expect(r.prayer).toBe('fajr');
+  });
+  it('rejects an unknown prayer', () => {
+    expect(() => LogSalahSchema.parse({ prayer: 'witr' })).toThrow();
+  });
+  it('rejects an out-of-range late_after_fraction', () => {
+    const base = {
+      city: 'Tashkent', latitude: 41.3, longitude: 69.2, timezone: 'Asia/Tashkent',
+      fajr_angle: 15.5, isha_angle: 15.5, isha_interval: 0, madhab: 'hanafi',
+      offset_fajr: 0, offset_dhuhr: 0, offset_asr: 0, offset_maghrib: 3, offset_isha: 0,
+    };
+    expect(() => SalahSettingsSchema.parse({ ...base, late_after_fraction: 2 })).toThrow();
+    expect(SalahSettingsSchema.parse({ ...base, late_after_fraction: 0.6667 }).madhab).toBe('hanafi');
   });
 });
