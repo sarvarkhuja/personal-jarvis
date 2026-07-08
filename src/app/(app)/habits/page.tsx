@@ -10,6 +10,7 @@ import {
 } from '@/lib/domain/habit-consistency';
 import type { FrequencyJson } from '@/lib/schemas/habits';
 import { groupHabitsByDayPart } from '@/lib/domain/day-part';
+import { sumSecondsByHabit } from '@/lib/domain/habit-logs';
 import { AddHabitSheet } from '@/components/habits/AddHabitSheet';
 import { HabitCard } from '@/components/habits/HabitCard';
 import { HabitsConsistencyInstrument } from '@/components/habits/HabitsConsistencyInstrument';
@@ -32,6 +33,7 @@ type HabitRecord = {
 type HabitLogRecord = {
   habit_id: string;
   log_date: string;
+  value: number | null;
 };
 
 export default async function HabitsPage() {
@@ -60,7 +62,7 @@ export default async function HabitsPage() {
       .order('created_at', { ascending: true }),
     supabase
       .from('habit_logs')
-      .select('habit_id, log_date')
+      .select('habit_id, log_date, value')
       .eq('user_id', userId)
       .gte('log_date', sinceISO),
     supabase
@@ -82,6 +84,8 @@ export default async function HabitsPage() {
     if (!logsByHabit.has(l.habit_id)) logsByHabit.set(l.habit_id, []);
     logsByHabit.get(l.habit_id)!.push(l.log_date);
   }
+
+  const todaySecondsByHabit = sumSecondsByHabit(logs, today);
 
   // One pass per habit: streak math, today's status, and the 14-day rhythm.
   const cards = habits.map((h) => {
@@ -168,6 +172,7 @@ export default async function HabitsPage() {
                       strip={c.strip}
                       dueToday={c.dueToday}
                       doneToday={c.doneToday}
+                      todaySeconds={todaySecondsByHabit.get(c.habit.id) ?? 0}
                     />
                   ))}
                 </div>

@@ -1,6 +1,7 @@
 import { LogHabitButton } from '@/components/today/LogHabitButton';
 import { frequencyLabel, type DayCell } from '@/lib/domain/habit-consistency';
 import type { FrequencyJson } from '@/lib/schemas/habits';
+import { formatDuration } from '@/lib/utils/duration';
 import { DeleteHabitButton } from './DeleteHabitButton';
 import { HabitTimer } from './HabitTimer';
 import { HabitTimeControl } from './HabitTimeControl';
@@ -19,6 +20,7 @@ type Props = {
   dueToday: boolean;
   doneToday: boolean;
   scheduledTime: string | null;
+  todaySeconds: number;
 };
 
 /**
@@ -36,6 +38,7 @@ export function HabitCard({
   dueToday,
   doneToday,
   scheduledTime,
+  todaySeconds,
 }: Props) {
   const { id, name, kind, frequency } = habit;
   const doneDays = strip.filter((c) => c.due && c.done).length;
@@ -79,7 +82,14 @@ export function HabitCard({
 
         <div className="shrink-0">
           {kind === 'timer' ? (
-            <HabitTimer habitId={id} />
+            <div className="flex flex-col items-end gap-1.5">
+              {todaySeconds > 0 && (
+                <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-success">
+                  Today {formatDuration(todaySeconds)} ✓
+                </span>
+              )}
+              <HabitTimer habitId={id} />
+            </div>
           ) : !dueToday ? (
             <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-text-disabled">
               REST DAY
