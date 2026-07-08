@@ -29,3 +29,20 @@ export function groupLoggedHabitIdsByDate(
   }
   return byDate;
 }
+
+/**
+ * Sum `habit_log.value` per habit for a single day. For timer habits `value` is
+ * seconds, and a day legitimately holds several rows (focus-session auto-logs +
+ * manual timer logs), so callers get the accumulated total. Null values count 0.
+ */
+export function sumSecondsByHabit(
+  logs: ReadonlyArray<{ habit_id: string; log_date: string; value: number | null }>,
+  today: string,
+): Map<string, number> {
+  const byHabit = new Map<string, number>();
+  for (const { habit_id, log_date, value } of logs) {
+    if (log_date !== today) continue;
+    byHabit.set(habit_id, (byHabit.get(habit_id) ?? 0) + (value ?? 0));
+  }
+  return byHabit;
+}
