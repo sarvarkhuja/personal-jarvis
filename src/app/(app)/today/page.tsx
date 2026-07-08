@@ -48,7 +48,7 @@ export default async function TodayPage() {
       .is('archived_at', null),
     supabase
       .from('habit_logs')
-      .select('habit_id, log_date')
+      .select('habit_id, log_date, value')
       .eq('user_id', userId)
       .gte('logged_at', startUtc.toISOString())
       .lt('logged_at', endUtc.toISOString()),
@@ -92,6 +92,7 @@ export default async function TodayPage() {
   const logsToday = (todayHabitLogsResult.data ?? []) as Array<{
     habit_id: string;
     log_date: string;
+    value: number | null;
   }>;
   const medications = (medicationsResult.data ?? []) as Array<{
     id: string;

@@ -1,4 +1,6 @@
 import { isHabitDueOn } from '@/lib/domain/schedule';
+import { sumSecondsByHabit } from '@/lib/domain/habit-logs';
+import { formatDuration } from '@/lib/utils/duration';
 import type { FrequencyJson } from '@/lib/schemas/habits';
 import { LogHabitButton } from './LogHabitButton';
 import { WidgetCard, WidgetCount, WidgetEmpty, WidgetLink } from './WidgetCard';
@@ -10,7 +12,7 @@ type Habit = {
   frequency_json: FrequencyJson;
 };
 
-type HabitLog = { habit_id: string; log_date: string };
+type HabitLog = { habit_id: string; log_date: string; value: number | null };
 
 export function HabitsDueWidget({
   habits,
@@ -23,6 +25,7 @@ export function HabitsDueWidget({
 }) {
   const due = habits.filter((h) => isHabitDueOn(h.frequency_json, today));
   const loggedSet = new Set(logsToday.map((l) => l.habit_id));
+  const secondsByHabit = sumSecondsByHabit(logsToday, today);
   const remaining = due.filter((h) => !loggedSet.has(h.id)).length;
 
   return (
@@ -42,6 +45,9 @@ export function HabitsDueWidget({
         <ul className="-mt-1">
           {due.map((h) => {
             const logged = loggedSet.has(h.id);
+            const seconds = secondsByHabit.get(h.id) ?? 0;
+            const timerLabel =
+              h.kind === 'timer' && seconds > 0 ? formatDuration(seconds) : null;
             return (
               <li
                 key={h.id}
@@ -54,7 +60,7 @@ export function HabitsDueWidget({
                   </span>
                   {logged && (
                     <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-success">
-                      done
+                      {timerLabel ? `${timerLabel} ✓` : 'done'}
                     </span>
                   )}
                 </div>
