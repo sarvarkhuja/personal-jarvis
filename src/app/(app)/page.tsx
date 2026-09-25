@@ -365,7 +365,6 @@ export default async function HomePage() {
         <TabsContent value="future-self" keepMounted>
           <FutureSelf
             images={(selfImagesResult.data ?? []) as SelfImage[]}
-            today={today}
             evidence={buildAttentionEvidence(focusSessions, today)}
             evidenceAvailable={!focusSessionsResult.error}
             imagesAvailable={!selfImagesResult.error}

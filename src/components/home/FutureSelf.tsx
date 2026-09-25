@@ -2,22 +2,22 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import Form from 'next/form';
 import { ArrowUpRight, Check, Pencil } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { saveSelfImage } from '@/lib/actions/self-images';
 import { SELF_IMAGE_PILLARS, STARTER_SELF_IMAGES, type SelfImage, type SelfImageInput } from '@/lib/schemas/self-images';
-import { attentionProjection, type AttentionEvidence } from '@/lib/domain/future-self';
+import type { AttentionEvidence } from '@/lib/domain/future-self';
 
 const label = 'font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary';
 const control = 'min-h-11 rounded-full px-5 font-mono text-[11px] uppercase tracking-[0.06em]';
 const pillarLinks = { ml: '/focus', physique: '/workout', work: '/goals', salah: '/salah', discipline: '/habits' };
 const phases = ['Build the foundation', 'Make it your standard', 'Live the identity'];
 
-export function FutureSelf({ images, today, evidence, evidenceAvailable, imagesAvailable, goal }: {
+export function FutureSelf({ images, evidence, evidenceAvailable, imagesAvailable, goal }: {
   images: SelfImage[];
-  today: string;
   evidence: AttentionEvidence;
   evidenceAvailable: boolean;
   imagesAvailable: boolean;
@@ -25,11 +25,8 @@ export function FutureSelf({ images, today, evidence, evidenceAvailable, imagesA
 }) {
   const [selected, setSelected] = useState<2 | 7 | 15>(2);
   const [editing, setEditing] = useState(false);
-  const [minutes, setMinutes] = useState(25);
-  const [missedDays, setMissedDays] = useState(2);
   const visions = STARTER_SELF_IMAGES.map((starter) => images.find((image) => image.months === starter.months) ?? starter);
   const vision = visions.find((item) => item.months === selected)!;
-  const projection = attentionProjection(today, selected, minutes, missedDays);
   const nextAction = goal ? `Take the next small step on: ${goal.title}` : 'Open my plan and finish one small, useful task';
   const focusUrl = (duration: number) => `/focus?${new URLSearchParams({ minutes: String(duration), intent: nextAction.slice(0, 280), ...(goal ? { goal: goal.id } : {}) })}`;
 
@@ -122,54 +119,39 @@ export function FutureSelf({ images, today, evidence, evidenceAvailable, imagesA
           </> : <p role="status" className="mt-5 text-sm text-text-secondary">Focus history is unavailable right now. Reload to see your recent pace.</p>}
         </section>
 
-        <section aria-labelledby="attention-cost">
-          <h3 id="attention-cost" className={label}>03 / Turn scrolling time into focus time</h3>
+        <section aria-labelledby="next-focus-action">
+          <h3 id="next-focus-action" className={label}>03 / My next focused action</h3>
           <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-            Choose how many minutes you’ll move from scrolling to focused work, and how many days a week you’ll skip that focus block.
+            Define one thing you can finish in a single sitting. Take it straight into your focus timer.
           </p>
-          <div className="mt-5 flex flex-wrap items-baseline gap-2">
-            <span className="font-mono text-5xl tracking-tighter text-text-display">{Math.round(projection.keptHours)}</span>
-            <span className="text-sm text-text-secondary">estimated focus hours over the next {selected} months</span>
+          <div className="mt-5 border-l-2 border-border-visible pl-4">
+            <p className={label}>Working toward</p>
+            {goal ? <p className="mt-2 break-words text-base text-text-primary">{goal.title}</p> : <Link href="/goals" className="mt-2 inline-flex min-h-11 items-center gap-1 text-sm text-text-primary underline underline-offset-4">Choose a goal <ArrowUpRight className="size-4" /></Link>}
           </div>
-          <p className="mt-2 text-sm text-text-primary">{minutes} minutes per day · {7 - missedDays} {7 - missedDays === 1 ? 'day' : 'days'} per week</p>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2">
-            <label className="flex flex-col gap-2"><span className={label}>Focus minutes per day</span>
-              <select value={minutes} onChange={(event) => setMinutes(Number(event.target.value))} className="min-h-11 rounded-md border border-border-visible bg-background px-3 font-mono text-sm">
-                {[5, 15, 25, 45, 60].map((value) => <option key={value} value={value}>{value} min</option>)}
+          <Form action="/focus" aria-label="Prepare my next focus block" className="mt-6 flex flex-col gap-5">
+            {goal && <input type="hidden" name="goal" value={goal.id} />}
+            <div className="flex flex-col gap-2">
+              <label htmlFor="next-focus-intent" className={label}>By the end, I will have…</label>
+              <Input id="next-focus-intent" name="intent" required pattern={'.*\\S.*'} maxLength={280}
+                placeholder="e.g. solved one Python exercise"
+                aria-describedby="next-focus-hint" className="min-h-11" />
+              <p id="next-focus-hint" className="text-sm text-text-secondary">Name a finish line: one exercise, one paragraph, one small fix.</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="next-focus-minutes" className={label}>Time I can give right now</label>
+              <select id="next-focus-minutes" name="minutes" defaultValue="25" className="min-h-11 rounded-md border border-border-visible bg-background px-3 font-mono text-sm">
+                <option value="5">5 min — get unstuck</option>
+                <option value="25">25 min — make progress</option>
+                <option value="45">45 min — go deeper</option>
               </select>
-            </label>
-            <label className="flex flex-col gap-2"><span className={label}>Days skipped / week</span>
-              <select value={missedDays} onChange={(event) => setMissedDays(Number(event.target.value))} className="min-h-11 rounded-md border border-border-visible bg-background px-3 font-mono text-sm">
-                {[0, 1, 2, 3, 4, 5, 6, 7].map((value) => <option key={value} value={value}>{value} {value === 1 ? 'day' : 'days'}</option>)}
-              </select>
-            </label>
-          </div>
-          <div className="mt-5 flex h-2 overflow-hidden rounded-sm bg-surface-raised" aria-hidden>
-            <div className="bg-text-primary transition-[width] motion-reduce:transition-none" style={{ width: `${(7 - missedDays) / 7 * 100}%` }} />
-          </div>
-          <div className="mt-2 flex flex-wrap justify-between gap-2 text-sm text-text-secondary">
-            <span>Your schedule: {Math.round(projection.keptHours)} hours</span>
-            <span>Every day: {Math.round(projection.availableHours)} hours</span>
-          </div>
-          <p aria-live="polite" className="mt-4 text-sm leading-relaxed text-text-secondary">
-            {missedDays === 0 ? 'With no skipped days, you keep all of that focus time.' : `${missedDays} skipped ${missedDays === 1 ? 'day' : 'days'} a week means about ${Math.round(projection.lostHours)} fewer hours of focused work over ${selected} months, compared with doing the block every day.`}
-            {' '}Skipping one block means {minutes} fewer minutes of practice. Your past progress still counts.
-          </p>
-          <p className="mt-3 text-sm leading-relaxed text-text-secondary">Based on your choices above, not your activity history. Assumes the same weekly schedule for {projection.days} days; hours are rounded.</p>
+            </div>
+            <p className="text-sm leading-relaxed text-text-secondary">Before starting: put your phone out of reach and close the feed.</p>
+            <Button type="submit" className={cn(control, 'self-start')}>Open focus timer <ArrowUpRight data-icon="inline-end" /></Button>
+            <p className={label}>Your task and duration will be ready. Start when you are.</p>
+          </Form>
         </section>
       </div>
 
-      <section aria-labelledby="scroll-reset" className="rounded-xl border border-border-visible bg-surface p-5 md:p-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-3"><h3 id="scroll-reset" className={label}>When I catch myself scrolling</h3><span className={label}>A reset, not a punishment</span></div>
-        <ol className="mt-5 grid gap-6 md:grid-cols-3">
-          {[
-            ['01', 'Create a little distance.', 'Close the feed. Put the phone out of reach and silence nonessential notifications.'],
-            ['02', 'Make the next step tiny.', 'Open the thing you planned to work on. Write one sentence, solve one problem, or work for five minutes.'],
-            ['03', 'Leave a way back.', 'Before stopping, write the next action in your plan. Give it a time. Return there tomorrow.'],
-          ].map(([number, title, description]) => <li key={number} className="flex gap-3"><span className={label}>{number}</span><div><p className="text-base text-text-primary">{title}</p><p className="mt-2 text-sm leading-relaxed text-text-secondary">{description}</p></div></li>)}
-        </ol>
-        <Link href="/plans" className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm text-text-primary underline underline-offset-4">Give tomorrow a plan <ArrowUpRight className="size-4" /></Link>
-      </section>
     </section>
   );
 }

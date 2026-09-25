@@ -8,19 +8,39 @@ import { saveSelfImage } from '@/lib/actions/self-images';
 
 vi.mock('@/lib/actions/self-images', () => ({ saveSelfImage: vi.fn() }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
-const props = { images: [], today: '2026-09-25', evidence: buildAttentionEvidence([], '2026-09-25'), evidenceAvailable: true, imagesAvailable: true };
+const props = { images: [], evidence: buildAttentionEvidence([], '2026-09-25'), evidenceAvailable: true, imagesAvailable: true };
 
 describe('FutureSelf', () => {
-  it('changes horizons and calculates the cost of skipping practice', async () => {
+  it('changes horizons and keeps the quick recovery shortcut', async () => {
     const user = userEvent.setup();
     render(<FutureSelf {...props} />);
     await user.click(screen.getByRole('button', { name: /^7 months/i }));
     expect(screen.getByText(STARTER_SELF_IMAGES[1].vision)).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText('Days skipped / week'), '7');
-    expect(screen.getByText(/7 skipped days a week means about 88 fewer hours/)).toBeInTheDocument();
     const recovery = new URL(screen.getByRole('link', { name: /Restart with 5 minutes/ }).getAttribute('href')!, 'https://example.com');
     expect(recovery.searchParams.get('minutes')).toBe('5');
     expect(recovery.searchParams.get('intent')).toBeTruthy();
+  });
+
+  it('requires a concrete task and sends it to focus with the chosen duration and goal', async () => {
+    const user = userEvent.setup();
+    render(<FutureSelf {...props} goal={{ id: 'my-goal', title: 'Learn Python' }} />);
+    const form = screen.getByRole('form', { name: 'Prepare my next focus block' }) as HTMLFormElement;
+    const task = screen.getByLabelText('By the end, I will have…');
+    const submitted = vi.fn();
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      submitted(Object.fromEntries(new FormData(form)));
+    });
+    await user.click(screen.getByRole('button', { name: 'Open focus timer' }));
+    expect(submitted).not.toHaveBeenCalled();
+    await user.type(task, '   ');
+    expect(task).toBeInvalid();
+    await user.clear(task);
+    await user.type(task, 'Solve one Python exercise');
+    await user.selectOptions(screen.getByLabelText('Time I can give right now'), '5');
+    await user.click(screen.getByRole('button', { name: 'Open focus timer' }));
+    expect(form).toHaveAttribute('action', '/focus');
+    expect(submitted).toHaveBeenCalledWith({ intent: 'Solve one Python exercise', minutes: '5', goal: 'my-goal' });
   });
 
   it('retains edits when saving fails and allows retry', async () => {
