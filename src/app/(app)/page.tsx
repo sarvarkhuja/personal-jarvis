@@ -20,6 +20,9 @@ import {
   pillWeekAdherence,
 } from '@/lib/domain/home-overview';
 import { HabitsConsistencyInstrument } from '@/components/habits/HabitsConsistencyInstrument';
+import { FutureSelf } from '@/components/home/FutureSelf';
+import { buildAttentionEvidence } from '@/lib/domain/future-self';
+import type { SelfImage } from '@/lib/schemas/self-images';
 import { TopGoalsWidget } from '@/components/today/TopGoalsWidget';
 import { UpcomingEventsWidget } from '@/components/today/UpcomingEventsWidget';
 import { ExpensesGlance } from '@/components/home/ExpensesGlance';
@@ -89,6 +92,7 @@ export default async function HomePage() {
     weeklyLiftsResult,
     bodyMetricsResult,
     salahLogsResult,
+    selfImagesResult,
   ] = await Promise.all([
     supabase
       .from('habits')
@@ -105,7 +109,9 @@ export default async function HomePage() {
       .from('goals')
       .select('id, title, status, target_date')
       .eq('user_id', userId)
-      .eq('status', 'active'),
+      .eq('status', 'active')
+      .order('target_date', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true }),
     supabase
       .from('expenses')
       .select('amount, date')
@@ -149,6 +155,11 @@ export default async function HomePage() {
       .select('prayer, log_date, status, jamaat')
       .eq('user_id', userId)
       .gte('log_date', habitSince),
+    supabase
+      .from('self_images')
+      .select('id, months, title, vision, ml, physique, work, salah, discipline')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false }),
   ]);
 
   // ── Habit consistency hero ──────────────────────────────────────────────
@@ -326,10 +337,10 @@ export default async function HomePage() {
   const dateLabel = formatInTimeZone(now, tz, 'EEE d MMMM yyyy').toUpperCase();
 
   return (
-    <main className="w-full space-y-4 px-4 py-8">
+    <main className="mx-auto w-full max-w-[1600px] space-y-4 px-4 pb-8 pt-16 md:px-8 md:pt-8">
       <header className="mb-2 flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-mono text-3xl font-bold uppercase leading-none tracking-[0.2em] text-text-primary">
+          <h1 className="font-mono text-sm font-medium uppercase leading-none tracking-[0.2em] text-text-primary">
             JARVIS
           </h1>
           <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary">
@@ -343,6 +354,19 @@ export default async function HomePage() {
         )}
       </header>
 
+      <FutureSelf
+        images={(selfImagesResult.data ?? []) as SelfImage[]}
+        today={today}
+        evidence={buildAttentionEvidence(focusSessions, today)}
+        evidenceAvailable={!focusSessionsResult.error}
+        imagesAvailable={!selfImagesResult.error}
+        goal={activeGoals[0]}
+      />
+
+      <div className="flex items-center gap-4 pb-3 pt-6">
+        <h2 className="shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary">04 / The daily evidence</h2>
+        <div className="h-px flex-1 bg-border" />
+      </div>
       <HabitsConsistencyInstrument
         model={habitModel}
         windowDays={HABIT_WINDOW_DAYS}

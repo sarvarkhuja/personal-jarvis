@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { Input } from '@/components/ui/input';
 import { startFocusSession, endFocusSession } from '@/lib/actions/focus';
 import { focusTickCount } from '@/lib/utils/focus-metrics';
 
@@ -31,13 +32,19 @@ const HERO_NUM = 'clamp(64px, 12vw, 132px)';
 export function FocusConsole({
   goalOptions,
   habitOptions,
+  initialMinutes = 25,
+  initialIntent = '',
+  initialGoalId = '',
 }: {
   goalOptions: { id: string; label: string }[];
   habitOptions: { id: string; label: string; kind: string; goalId: string }[];
+  initialMinutes?: number;
+  initialIntent?: string;
+  initialGoalId?: string;
 }) {
-  const [plannedMinutes, setPlannedMinutes] = React.useState(25);
-  const [intent, setIntent] = React.useState('');
-  const [goalId, setGoalId] = React.useState<string>('');
+  const [plannedMinutes, setPlannedMinutes] = React.useState(initialMinutes);
+  const [intent, setIntent] = React.useState(initialIntent);
+  const [goalId, setGoalId] = React.useState<string>(initialGoalId);
   const [habitId, setHabitId] = React.useState<string>('');
   const [running, setRunning] = React.useState<RunningSession | null>(null);
   const [pending, setPending] = React.useState(false);
@@ -203,6 +210,18 @@ export function FocusConsole({
             <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary">
               [ ARM SESSION ]
             </div>
+
+            <Field label="One concrete next action" htmlFor="focus-intent">
+              <Input
+                id="focus-intent"
+                data-testid="focus-intent"
+                value={intent}
+                maxLength={280}
+                onChange={(event) => setIntent(event.target.value)}
+                placeholder="What will you finish in this block?"
+                className="min-h-11"
+              />
+            </Field>
 
             <Field label="Linked goal" htmlFor="focus-goal">
               <select

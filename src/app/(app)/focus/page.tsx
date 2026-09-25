@@ -25,7 +25,13 @@ type HabitRow = { id: string; name: string; kind: string; goal_id: string };
 // Generous UTC floor so every user timezone still sees a full 60 local days.
 const WINDOW_MS = 70 * 24 * 60 * 60 * 1000;
 
-export default async function FocusPage() {
+export default async function FocusPage({ searchParams }: {
+  searchParams: Promise<{ minutes?: string | string[]; intent?: string | string[]; goal?: string | string[] }>;
+}) {
+  const query = await searchParams;
+  const requestedMinutes = typeof query.minutes === 'string' ? Number(query.minutes) : 25;
+  const initialMinutes = Number.isInteger(requestedMinutes) && requestedMinutes >= 1 && requestedMinutes <= 180 ? requestedMinutes : 25;
+  const initialIntent = typeof query.intent === 'string' ? query.intent.slice(0, 280) : '';
   const userId = await requireUserId();
   const supabase = await createClient();
   const now = new Date();
@@ -119,7 +125,14 @@ export default async function FocusPage() {
         </span>
       </header>
 
-      <FocusConsole goalOptions={goalOptions} habitOptions={habitOptions} />
+      <FocusConsole
+        key={`${initialMinutes}-${initialIntent}-${query.goal ?? ''}`}
+        goalOptions={goalOptions}
+        habitOptions={habitOptions}
+        initialMinutes={initialMinutes}
+        initialIntent={initialIntent}
+        initialGoalId={goalOptions.some((goal) => goal.id === query.goal) ? query.goal as string : ''}
+      />
 
       <FocusArchive metrics={metrics} />
     </main>
