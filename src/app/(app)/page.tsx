@@ -97,7 +97,7 @@ export default async function HomePage() {
   ] = await Promise.all([
     supabase
       .from('habits')
-      .select('id, name, frequency_json')
+      .select('id, name, frequency_json, kind, goal_id')
       .eq('user_id', userId)
       .is('archived_at', null)
       .order('created_at', { ascending: true }),
@@ -168,6 +168,8 @@ export default async function HomePage() {
     id: string;
     name: string;
     frequency_json: FrequencyJson;
+    kind: string;
+    goal_id: string;
   }>;
   const habitLogs = (habitLogsResult.data ?? []) as Array<{
     habit_id: string;
@@ -369,6 +371,10 @@ export default async function HomePage() {
             evidenceAvailable={!focusSessionsResult.error}
             imagesAvailable={!selfImagesResult.error}
             goal={activeGoals[0]}
+            focusOptions={{
+              goalOptions: activeGoals.map((goal) => ({ id: goal.id, label: goal.title })),
+              habitOptions: habits.map((habit) => ({ id: habit.id, label: habit.name, kind: habit.kind, goalId: habit.goal_id })),
+            }}
           />
         </TabsContent>
 

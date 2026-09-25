@@ -29,19 +29,23 @@ const BLINK = 'motion-safe:[animation:blink_1s_step-end_infinite]';
 // the session transforms the hero in place — no reflow, no layout jump.
 const HERO_NUM = 'clamp(64px, 12vw, 132px)';
 
+export type FocusConsoleProps = {
+  goalOptions: { id: string; label: string }[];
+  habitOptions: { id: string; label: string; kind: string; goalId: string }[];
+  initialMinutes?: number;
+  initialIntent?: string;
+  initialGoalId?: string;
+  layout?: 'wide' | 'stacked';
+};
+
 export function FocusConsole({
   goalOptions,
   habitOptions,
   initialMinutes = 25,
   initialIntent = '',
   initialGoalId = '',
-}: {
-  goalOptions: { id: string; label: string }[];
-  habitOptions: { id: string; label: string; kind: string; goalId: string }[];
-  initialMinutes?: number;
-  initialIntent?: string;
-  initialGoalId?: string;
-}) {
+  layout = 'wide',
+}: FocusConsoleProps) {
   const [plannedMinutes, setPlannedMinutes] = React.useState(initialMinutes);
   const [intent, setIntent] = React.useState(initialIntent);
   const [goalId, setGoalId] = React.useState<string>(initialGoalId);
@@ -127,7 +131,7 @@ export function FocusConsole({
     try {
       const created = await startFocusSession({
         planned_minutes: plannedMinutes,
-        intent: intent || undefined,
+        intent: intent.trim() || undefined,
         linked_goal_id: goalId || null,
         linked_habit_id: habitId || null,
       });
@@ -136,7 +140,7 @@ export function FocusConsole({
         id: (created as { id: string }).id,
         startedAtMs: Date.now(),
         durationSeconds,
-        intent,
+        intent: intent.trim(),
         plannedMinutes,
       };
       setRunning(session);
@@ -182,9 +186,10 @@ export function FocusConsole({
     )
     : '';
   const [mm, ss] = formatMMSS(remaining / 1000).split(':');
+  const heroSize = layout === 'stacked' ? 'clamp(48px, 8vw, 88px)' : HERO_NUM;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.85fr)]">
+    <div className={layout === 'stacked' ? 'grid min-w-0 gap-4' : 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.85fr)]'}>
       {/* ── LEFT CONSOLE ────────────────────────────────────────────────────── */}
       <aside className="rounded-lg border border-border bg-surface p-6">
         {running ? (
@@ -211,7 +216,7 @@ export function FocusConsole({
               [ ARM SESSION ]
             </div>
 
-            <Field label="One concrete next action" htmlFor="focus-intent">
+            <Field label="One concrete next action (optional)" htmlFor="focus-intent">
               <Input
                 id="focus-intent"
                 data-testid="focus-intent"
@@ -318,7 +323,7 @@ export function FocusConsole({
                 <span
                   data-testid="focus-elapsed"
                   className="font-bold leading-none tabular-nums text-text-display"
-                  style={{ fontSize: HERO_NUM }}
+                  style={{ fontSize: heroSize }}
                 >
                   {mm}
                   <span className={BLINK}>:</span>
@@ -328,7 +333,7 @@ export function FocusConsole({
                 <>
                   <span
                     className="font-doto font-bold leading-none tabular-nums tracking-tight text-text-display"
-                    style={{ fontSize: HERO_NUM }}
+                    style={{ fontSize: heroSize }}
                   >
                     {plannedMinutes || 0}
                   </span>
@@ -354,7 +359,7 @@ export function FocusConsole({
                 </div>
               ) : (
                 <p className="font-sans text-[15px] leading-snug text-text-secondary">
-                  Set a length, name the intent, arm the session.
+                  Set a length and arm the session. Add an action if it helps.
                 </p>
               )}
             </div>

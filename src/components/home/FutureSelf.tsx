@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import Form from 'next/form';
 import { ArrowUpRight, Check, Pencil } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { FocusConsole, type FocusConsoleProps } from '@/components/focus/FocusConsole';
 import { cn } from '@/lib/utils';
 import { saveSelfImage } from '@/lib/actions/self-images';
 import { SELF_IMAGE_PILLARS, STARTER_SELF_IMAGES, type SelfImage, type SelfImageInput } from '@/lib/schemas/self-images';
@@ -16,12 +16,13 @@ const control = 'min-h-11 rounded-full px-5 font-mono text-[11px] uppercase trac
 const pillarLinks = { ml: '/focus', physique: '/workout', work: '/goals', salah: '/salah', discipline: '/habits' };
 const phases = ['Build the foundation', 'Make it your standard', 'Live the identity'];
 
-export function FutureSelf({ images, evidence, evidenceAvailable, imagesAvailable, goal }: {
+export function FutureSelf({ images, evidence, evidenceAvailable, imagesAvailable, goal, focusOptions }: {
   images: SelfImage[];
   evidence: AttentionEvidence;
   evidenceAvailable: boolean;
   imagesAvailable: boolean;
   goal?: { id: string; title: string };
+  focusOptions: Pick<FocusConsoleProps, 'goalOptions' | 'habitOptions'>;
 }) {
   const [selected, setSelected] = useState<2 | 7 | 15>(2);
   const [editing, setEditing] = useState(false);
@@ -119,36 +120,9 @@ export function FutureSelf({ images, evidence, evidenceAvailable, imagesAvailabl
           </> : <p role="status" className="mt-5 text-sm text-text-secondary">Focus history is unavailable right now. Reload to see your recent pace.</p>}
         </section>
 
-        <section aria-labelledby="next-focus-action">
-          <h3 id="next-focus-action" className={label}>03 / My next focused action</h3>
-          <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-            Define one thing you can finish in a single sitting. Take it straight into your focus timer.
-          </p>
-          <div className="mt-5 border-l-2 border-border-visible pl-4">
-            <p className={label}>Working toward</p>
-            {goal ? <p className="mt-2 break-words text-base text-text-primary">{goal.title}</p> : <Link href="/goals" className="mt-2 inline-flex min-h-11 items-center gap-1 text-sm text-text-primary underline underline-offset-4">Choose a goal <ArrowUpRight className="size-4" /></Link>}
-          </div>
-          <Form action="/focus" aria-label="Prepare my next focus block" className="mt-6 flex flex-col gap-5">
-            {goal && <input type="hidden" name="goal" value={goal.id} />}
-            <div className="flex flex-col gap-2">
-              <label htmlFor="next-focus-intent" className={label}>By the end, I will have…</label>
-              <Input id="next-focus-intent" name="intent" required pattern={'.*\\S.*'} maxLength={280}
-                placeholder="e.g. solved one Python exercise"
-                aria-describedby="next-focus-hint" className="min-h-11" />
-              <p id="next-focus-hint" className="text-sm text-text-secondary">Name a finish line: one exercise, one paragraph, one small fix.</p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="next-focus-minutes" className={label}>Time I can give right now</label>
-              <select id="next-focus-minutes" name="minutes" defaultValue="25" className="min-h-11 rounded-md border border-border-visible bg-background px-3 font-mono text-sm">
-                <option value="5">5 min — get unstuck</option>
-                <option value="25">25 min — make progress</option>
-                <option value="45">45 min — go deeper</option>
-              </select>
-            </div>
-            <p className="text-sm leading-relaxed text-text-secondary">Before starting: put your phone out of reach and close the feed.</p>
-            <Button type="submit" className={cn(control, 'self-start')}>Open focus timer <ArrowUpRight data-icon="inline-end" /></Button>
-            <p className={label}>Your task and duration will be ready. Start when you are.</p>
-          </Form>
+        <section aria-labelledby="home-focus-session" className="min-w-0">
+          <h3 id="home-focus-session" className={cn(label, 'mb-5')}>03 / Focus session</h3>
+          <FocusConsole {...focusOptions} layout="stacked" />
         </section>
       </div>
 
