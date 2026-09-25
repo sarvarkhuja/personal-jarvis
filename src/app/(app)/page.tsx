@@ -21,6 +21,7 @@ import {
 } from '@/lib/domain/home-overview';
 import { HabitsConsistencyInstrument } from '@/components/habits/HabitsConsistencyInstrument';
 import { FutureSelf } from '@/components/home/FutureSelf';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { buildAttentionEvidence } from '@/lib/domain/future-self';
 import type { SelfImage } from '@/lib/schemas/self-images';
 import { TopGoalsWidget } from '@/components/today/TopGoalsWidget';
@@ -354,39 +355,50 @@ export default async function HomePage() {
         )}
       </header>
 
-      <FutureSelf
-        images={(selfImagesResult.data ?? []) as SelfImage[]}
-        today={today}
-        evidence={buildAttentionEvidence(focusSessions, today)}
-        evidenceAvailable={!focusSessionsResult.error}
-        imagesAvailable={!selfImagesResult.error}
-        goal={activeGoals[0]}
-      />
+      <Tabs defaultValue="future-self" className="w-full gap-6">
+        <TabsList variant="line" aria-label="Homepage sections" className="min-h-11 w-full sm:w-fit">
+          <TabsTrigger value="future-self" className="min-h-11 px-5">Future self</TabsTrigger>
+          <TabsTrigger value="daily-evidence" className="min-h-11 px-5">Daily evidence</TabsTrigger>
+        </TabsList>
 
-      <div className="flex items-center gap-4 pb-3 pt-6">
-        <h2 className="shrink-0 font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary">04 / The daily evidence</h2>
-        <div className="h-px flex-1 bg-border" />
-      </div>
-      <HabitsConsistencyInstrument
-        model={habitModel}
-        windowDays={HABIT_WINDOW_DAYS}
-        href="/habits"
-      />
+        {/* part 1 */}
+        <TabsContent value="future-self" keepMounted>
+          <FutureSelf
+            images={(selfImagesResult.data ?? []) as SelfImage[]}
+            today={today}
+            evidence={buildAttentionEvidence(focusSessions, today)}
+            evidenceAvailable={!focusSessionsResult.error}
+            imagesAvailable={!selfImagesResult.error}
+            goal={activeGoals[0]}
+          />
+        </TabsContent>
 
-      <div className="gap-4 lg:columns-2 xl:columns-3">
-        <TopGoalsWidget goals={activeGoals} today={today} />
-        <ExpensesGlance summary={spend} />
-        <FocusGlance week={focusMetrics.week} streakCount={focusMetrics.streak.count} />
-        <PillsGlance adherence={pills} />
-        <SalahGlance summary={salahSummary} />
-        <LiftsGlance rows={liftRows} loggedCount={liftsLoggedCount} />
-        <BodyWeightGlance summary={bodyWeight} days={WEIGHT_TREND_DAYS} />
-        <UpcomingEventsWidget
-          todayEvents={todayEvents}
-          tomorrowEvents={tomorrowEvents}
-          tz={tz}
-        />
-      </div>
+        {/* part 2 */}
+        <TabsContent value="daily-evidence" keepMounted>
+          <div className="flex flex-col gap-4">
+            <HabitsConsistencyInstrument
+              model={habitModel}
+              windowDays={HABIT_WINDOW_DAYS}
+              href="/habits"
+            />
+
+            <div className="gap-4 lg:columns-2 xl:columns-3">
+              <TopGoalsWidget goals={activeGoals} today={today} />
+              <ExpensesGlance summary={spend} />
+              <FocusGlance week={focusMetrics.week} streakCount={focusMetrics.streak.count} />
+              <PillsGlance adherence={pills} />
+              <SalahGlance summary={salahSummary} />
+              <LiftsGlance rows={liftRows} loggedCount={liftsLoggedCount} />
+              <BodyWeightGlance summary={bodyWeight} days={WEIGHT_TREND_DAYS} />
+              <UpcomingEventsWidget
+                todayEvents={todayEvents}
+                tomorrowEvents={tomorrowEvents}
+                tz={tz}
+              />
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }

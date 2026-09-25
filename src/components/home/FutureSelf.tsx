@@ -123,13 +123,17 @@ export function FutureSelf({ images, today, evidence, evidenceAvailable, imagesA
         </section>
 
         <section aria-labelledby="attention-cost">
-          <h3 id="attention-cost" className={label}>03 / What repetition changes</h3>
+          <h3 id="attention-cost" className={label}>03 / Turn scrolling time into focus time</h3>
+          <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+            Choose how many minutes you’ll move from scrolling to focused work, and how many days a week you’ll skip that focus block.
+          </p>
           <div className="mt-5 flex flex-wrap items-baseline gap-2">
             <span className="font-mono text-5xl tracking-tighter text-text-display">{Math.round(projection.keptHours)}</span>
-            <span className="text-sm text-text-secondary">hours of practice in {selected} months</span>
+            <span className="text-sm text-text-secondary">estimated focus hours over the next {selected} months</span>
           </div>
+          <p className="mt-2 text-sm text-text-primary">{minutes} minutes per day · {7 - missedDays} {7 - missedDays === 1 ? 'day' : 'days'} per week</p>
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
-            <label className="flex flex-col gap-2"><span className={label}>Minutes reclaimed / day</span>
+            <label className="flex flex-col gap-2"><span className={label}>Focus minutes per day</span>
               <select value={minutes} onChange={(event) => setMinutes(Number(event.target.value))} className="min-h-11 rounded-md border border-border-visible bg-background px-3 font-mono text-sm">
                 {[5, 15, 25, 45, 60].map((value) => <option key={value} value={value}>{value} min</option>)}
               </select>
@@ -143,11 +147,15 @@ export function FutureSelf({ images, today, evidence, evidenceAvailable, imagesA
           <div className="mt-5 flex h-2 overflow-hidden rounded-sm bg-surface-raised" aria-hidden>
             <div className="bg-text-primary transition-[width] motion-reduce:transition-none" style={{ width: `${(7 - missedDays) / 7 * 100}%` }} />
           </div>
+          <div className="mt-2 flex flex-wrap justify-between gap-2 text-sm text-text-secondary">
+            <span>Your schedule: {Math.round(projection.keptHours)} hours</span>
+            <span>Every day: {Math.round(projection.availableHours)} hours</span>
+          </div>
           <p aria-live="polite" className="mt-4 text-sm leading-relaxed text-text-secondary">
-            {missedDays === 0 ? 'Every planned minute stays available.' : `${missedDays} skipped ${missedDays === 1 ? 'day' : 'days'} a week means about ${Math.round(projection.lostHours)} fewer hours of practice.`}
-            {' '}One missed day costs {minutes} minutes of opportunity. It does not erase what you’ve built.
+            {missedDays === 0 ? 'With no skipped days, you keep all of that focus time.' : `${missedDays} skipped ${missedDays === 1 ? 'day' : 'days'} a week means about ${Math.round(projection.lostHours)} fewer hours of focused work over ${selected} months, compared with doing the block every day.`}
+            {' '}Skipping one block means {minutes} fewer minutes of practice. Your past progress still counts.
           </p>
-          <p className={cn(label, 'mt-3 leading-relaxed')}>What-if estimate · {projection.days} days · not a prediction of results</p>
+          <p className="mt-3 text-sm leading-relaxed text-text-secondary">Based on your choices above, not your activity history. Assumes the same weekly schedule for {projection.days} days; hours are rounded.</p>
         </section>
       </div>
 
