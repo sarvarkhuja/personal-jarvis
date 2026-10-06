@@ -4,7 +4,7 @@ import { createTestUser, deleteTestUser, userClient, type TestUser } from '../he
 
 const env = readE2EEnv();
 
-test('future self: save, reload, owner isolation, responsive themes, and focus handoff', async ({ page }) => {
+test('future self: protocol, CRUD, owner isolation, responsive themes, and focus handoff', async ({ page }) => {
   test.skip(!env, 'Supabase test credentials required.');
   if (!env) return;
   test.setTimeout(120_000);
@@ -18,29 +18,36 @@ test('future self: save, reload, owner isolation, responsive themes, and focus h
     await page.getByRole('button', { name: /sign in|log in/i }).click();
     await page.waitForURL((url) => !url.pathname.startsWith('/login'));
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /Your future. Built today./ })).toBeVisible();
-    for (const month of [2, 7, 15]) {
+    for (const month of [7, 15, 2]) {
       await page.getByRole('button', { name: new RegExp(`^${month} months:`) }).click();
-      await expect(page.getByText(`Self-image / ${month} months from now`)).toBeVisible();
+      await expect(page.getByText(`Days to my ${month}-month self`)).toBeVisible();
     }
-    await page.getByRole('button', { name: 'Make it mine' }).click();
-    await page.getByLabel('Identity statement').fill('I choose meaningful work every day.');
-    await page.getByRole('button', { name: 'Save my vision' }).click();
-    await expect(page.getByRole('status')).toContainText('Saved.');
-    await page.reload();
-    await expect(page.getByRole('button', { name: '15 months: I choose meaningful work every day.' })).toBeVisible();
+
+    await page.getByRole('button', { name: /Load strict protocol/ }).click();
+    await expect(page.getByText('I wake at the same time every day, weekends included.')).toBeVisible();
+    await page.getByRole('button', { name: 'Add to Salah' }).click();
+    await page.getByLabel('New Salah statement').fill('I read the tafsir of one ayah after Fajr.');
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(page.getByText('I read the tafsir of one ayah after Fajr.')).toBeVisible();
+    await page.getByRole('button', { name: 'Edit: I read the tafsir of one ayah after Fajr.' }).click();
+    await page.getByLabel('Edit statement').fill('I read the tafsir of two ayat after Fajr.');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('I read the tafsir of two ayat after Fajr.')).toBeVisible();
+    await page.getByRole('button', { name: 'Delete: I read the tafsir of two ayat after Fajr.' }).click();
+    await page.getByRole('group', { name: 'Confirm delete' }).getByRole('button', { name: 'Yes' }).click();
+    await expect(page.getByText('I read the tafsir of two ayat after Fajr.')).toHaveCount(0);
 
     const owner = userClient(env);
     await owner.auth.signInWithPassword({ email: user.email, password: user.password });
-    const { data: rows, error } = await owner.from('self_images').select('id, title').eq('user_id', user.id);
+    const { data: rows, error } = await owner.from('self_image_items').select('id').eq('user_id', user.id).eq('months', 2);
     expect(error).toBeNull();
-    expect(rows).toHaveLength(1);
+    expect(rows!.length).toBeGreaterThan(0);
     const stranger = userClient(env);
     await stranger.auth.signInWithPassword({ email: other.email, password: other.password });
-    const hidden = await stranger.from('self_images').select('id').eq('id', rows![0].id);
+    const hidden = await stranger.from('self_image_items').select('id').eq('id', rows![0].id);
     expect(hidden.error).toBeNull();
     expect(hidden.data).toEqual([]);
-    const blocked = await stranger.from('self_images').update({ title: 'Unauthorized' }).eq('id', rows![0].id).select();
+    const blocked = await stranger.from('self_image_items').update({ body: 'Unauthorized' }).eq('id', rows![0].id).select();
     expect(blocked.data).toEqual([]);
 
     await page.setViewportSize({ width: 1440, height: 1050 });
@@ -57,9 +64,6 @@ test('future self: save, reload, owner isolation, responsive themes, and focus h
     await page.getByRole('link', { name: /Restart with 5 minutes/ }).click();
     await expect(page.getByTestId('focus-minutes')).toHaveValue('5');
     await expect(page.getByTestId('focus-intent')).toHaveValue('Open my plan and finish one small, useful task');
-    await page.goto('/');
-    await page.getByRole('link', { name: /Set up 25 min of focus/ }).click();
-    await expect(page.getByTestId('focus-minutes')).toHaveValue('25');
   } finally {
     await deleteTestUser(env, user.id);
     if (other) await deleteTestUser(env, other.id);

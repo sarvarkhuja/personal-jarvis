@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attentionProjection, buildAttentionEvidence, horizonDate } from '../future-self';
+import { attentionProjection, buildAttentionEvidence, groupSelfImage, horizonDate, protocolItems } from '../future-self';
 
 describe('future self projections', () => {
   it('uses calendar months and clamps at month-end, including leap years', () => {
@@ -34,5 +34,22 @@ describe('future self projections', () => {
     expect(result.activeDays).toBe(1);
     expect(result.totalMinutes).toBe(30);
     expect(result.todayMinutes).toBe(10);
+  });
+});
+
+describe('self-image protocol', () => {
+  it('covers every pillar on every horizon and groups items in pillar order', () => {
+    for (const months of [2, 7, 15] as const) {
+      const items = protocolItems(months);
+      expect(new Set(items.map((item) => item.pillar)).size).toBe(5);
+      expect(items.every((item) => item.body.length > 0 && item.body.length <= 280)).toBe(true);
+    }
+    const grouped = groupSelfImage([
+      { id: 'b', months: 2, pillar: 'salah', body: 'B' },
+      { id: 'a', months: 2, pillar: 'discipline', body: 'A' },
+      { id: 'c', months: 7, pillar: 'salah', body: 'C' },
+    ], 2);
+    expect(grouped.map((group) => group.key)).toEqual(['discipline', 'ml', 'physique', 'salah', 'work']);
+    expect(grouped.find((group) => group.key === 'salah')!.items.map((item) => item.id)).toEqual(['b']);
   });
 });

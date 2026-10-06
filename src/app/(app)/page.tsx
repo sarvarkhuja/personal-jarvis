@@ -23,7 +23,7 @@ import { HabitsConsistencyInstrument } from '@/components/habits/HabitsConsisten
 import { FutureSelf } from '@/components/home/FutureSelf';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { buildAttentionEvidence } from '@/lib/domain/future-self';
-import type { SelfImage } from '@/lib/schemas/self-images';
+import type { SelfImageItem } from '@/lib/schemas/self-images';
 import { TopGoalsWidget } from '@/components/today/TopGoalsWidget';
 import { UpcomingEventsWidget } from '@/components/today/UpcomingEventsWidget';
 import { ExpensesGlance } from '@/components/home/ExpensesGlance';
@@ -157,10 +157,10 @@ export default async function HomePage() {
       .eq('user_id', userId)
       .gte('log_date', habitSince),
     supabase
-      .from('self_images')
-      .select('id, months, title, vision, ml, physique, work, salah, discipline')
+      .from('self_image_items')
+      .select('id, months, pillar, body')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: true }),
   ]);
 
   // ── Habit consistency hero ──────────────────────────────────────────────
@@ -366,10 +366,11 @@ export default async function HomePage() {
         {/* part 1 */}
         <TabsContent value="future-self" keepMounted>
           <FutureSelf
-            images={(selfImagesResult.data ?? []) as SelfImage[]}
+            items={(selfImagesResult.data ?? []) as SelfImageItem[]}
+            today={today}
             evidence={buildAttentionEvidence(focusSessions, today)}
             evidenceAvailable={!focusSessionsResult.error}
-            imagesAvailable={!selfImagesResult.error}
+            itemsAvailable={!selfImagesResult.error}
             goal={activeGoals[0]}
             focusOptions={{
               goalOptions: activeGoals.map((goal) => ({ id: goal.id, label: goal.title })),

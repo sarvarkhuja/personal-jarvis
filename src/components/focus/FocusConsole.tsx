@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { startFocusSession, endFocusSession } from '@/lib/actions/focus';
 import { focusTickCount } from '@/lib/utils/focus-metrics';
@@ -36,6 +37,7 @@ export type FocusConsoleProps = {
   initialIntent?: string;
   initialGoalId?: string;
   layout?: 'wide' | 'stacked';
+  sessionDetails?: 'fields' | 'bullets';
 };
 
 export function FocusConsole({
@@ -45,6 +47,7 @@ export function FocusConsole({
   initialIntent = '',
   initialGoalId = '',
   layout = 'wide',
+  sessionDetails = 'fields',
 }: FocusConsoleProps) {
   const [plannedMinutes, setPlannedMinutes] = React.useState(initialMinutes);
   const [intent, setIntent] = React.useState(initialIntent);
@@ -216,52 +219,69 @@ export function FocusConsole({
               [ ARM SESSION ]
             </div>
 
-            <Field label="One concrete next action (optional)" htmlFor="focus-intent">
-              <Input
-                id="focus-intent"
-                data-testid="focus-intent"
-                value={intent}
-                maxLength={280}
-                onChange={(event) => setIntent(event.target.value)}
-                placeholder="What will you finish in this block?"
-                className="min-h-11"
-              />
-            </Field>
+            {sessionDetails === 'bullets' ? (
+              <>
+                <ul className="flex list-disc flex-col gap-3 pl-5 text-sm leading-relaxed text-text-primary marker:text-text-secondary">
+                  <li>Focus for {plannedMinutes} minutes.</li>
+                  <li>{goalOptions.find((goal) => goal.id === goalId)?.label ?? 'Work on one thing at a time.'}</li>
+                  <li>{intent.trim() || 'A concrete action plan is optional.'}</li>
+                  <li>Put your phone out of reach and close distractions.</li>
+                </ul>
+                <Link href={{ pathname: '/focus', query: { minutes: plannedMinutes, ...(goalId ? { goal: goalId } : {}), ...(intent.trim() ? { intent: intent.trim() } : {}) } }} className="inline-flex min-h-11 items-center self-start text-sm text-text-secondary underline underline-offset-4 hover:text-text-primary">
+                  Edit session details
+                </Link>
+              </>
+            ) : (
+              <>
+                <Field label="One concrete next action (optional)" htmlFor="focus-intent">
+                  <Input
+                    id="focus-intent"
+                    data-testid="focus-intent"
+                    value={intent}
+                    maxLength={280}
+                    onChange={(event) => setIntent(event.target.value)}
+                    placeholder="What will you finish in this block?"
+                    className="min-h-11"
+                  />
+                </Field>
 
-            <Field label="Linked goal" htmlFor="focus-goal">
-              <select
-                id="focus-goal"
-                data-testid="focus-goal"
-                value={goalId}
-                onChange={(e) => setGoalId(e.target.value)}
-                className="w-full appearance-none border-b border-border-visible bg-transparent py-2 font-mono text-[13px] text-text-primary transition-colors focus:border-text-primary focus:outline-none"
-              >
-                <option value="">— none —</option>
-                {goalOptions.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+                <Field label="Linked goal" htmlFor="focus-goal">
+                  <select
+                    id="focus-goal"
+                    data-testid="focus-goal"
+                    value={goalId}
+                    onChange={(e) => setGoalId(e.target.value)}
+                    className="w-full appearance-none border-b border-border-visible bg-transparent py-2 font-mono text-[13px] text-text-primary transition-colors focus:border-text-primary focus:outline-none"
+                  >
+                    <option value="">— none —</option>
+                    {goalOptions.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
 
-            <Field label="Linked timer habit" htmlFor="focus-habit">
-              <select
-                id="focus-habit"
-                data-testid="focus-habit"
-                value={habitId}
-                onChange={(e) => setHabitId(e.target.value)}
-                className="w-full appearance-none border-b border-border-visible bg-transparent py-2 font-mono text-[13px] text-text-primary transition-colors focus:border-text-primary focus:outline-none disabled:opacity-40"
-                disabled={timerHabits.length === 0}
-              >
-                <option value="">— none —</option>
-                {timerHabits.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+                <Field label="Linked timer habit" htmlFor="focus-habit">
+                  <select
+                    id="focus-habit"
+                    data-testid="focus-habit"
+                    value={habitId}
+                    onChange={(e) => setHabitId(e.target.value)}
+                    className="w-full appearance-none border-b border-border-visible bg-transparent py-2 font-mono text-[13px] text-text-primary transition-colors focus:border-text-primary focus:outline-none disabled:opacity-40"
+                    disabled={timerHabits.length === 0}
+                  >
+                    <option value="">— none —</option>
+                    {timerHabits.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+
+              </>
+            )}
 
             <button
               type="button"
@@ -395,7 +415,7 @@ export function FocusConsole({
                       </button>
                     );
                   })}
-                  <label htmlFor="focus-minutes" className="ml-1 flex items-center gap-2">
+                  {sessionDetails === 'fields' && <label htmlFor="focus-minutes" className="ml-1 flex items-center gap-2">
                     <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-text-secondary">
                       or
                     </span>
@@ -415,7 +435,7 @@ export function FocusConsole({
                     <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-text-secondary">
                       min
                     </span>
-                  </label>
+                  </label>}
                 </div>
               )}
             </div>

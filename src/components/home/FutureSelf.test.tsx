@@ -2,22 +2,27 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FutureSelf } from './FutureSelf';
+import { FocusConsole } from '@/components/focus/FocusConsole';
 import { buildAttentionEvidence } from '@/lib/domain/future-self';
-import { STARTER_SELF_IMAGES } from '@/lib/schemas/self-images';
-import { saveSelfImage } from '@/lib/actions/self-images';
+import { createSelfImageItem, deleteSelfImageItem, loadSelfImageProtocol, updateSelfImageItem } from '@/lib/actions/self-images';
 import { startFocusSession, endFocusSession } from '@/lib/actions/focus';
 
-vi.mock('@/lib/actions/self-images', () => ({ saveSelfImage: vi.fn() }));
+vi.mock('@/lib/actions/self-images', () => ({
+  createSelfImageItem: vi.fn(), updateSelfImageItem: vi.fn(), deleteSelfImageItem: vi.fn(), loadSelfImageProtocol: vi.fn(),
+}));
 vi.mock('@/lib/actions/focus', () => ({ startFocusSession: vi.fn(), endFocusSession: vi.fn() }));
 afterEach(() => { cleanup(); window.localStorage.clear(); vi.clearAllMocks(); });
-const props = { images: [], evidence: buildAttentionEvidence([], '2026-09-25'), evidenceAvailable: true, imagesAvailable: true, focusOptions: { goalOptions: [], habitOptions: [] } };
+const props = { items: [], today: '2026-09-25', evidence: buildAttentionEvidence([], '2026-09-25'), evidenceAvailable: true, itemsAvailable: true, focusOptions: { goalOptions: [], habitOptions: [] } };
 
 describe('FutureSelf', () => {
   it('changes horizons and keeps the quick recovery shortcut', async () => {
     const user = userEvent.setup();
     render(<FutureSelf {...props} />);
     await user.click(screen.getByRole('button', { name: /^7 months/i }));
-    expect(screen.getByText(STARTER_SELF_IMAGES[1].vision)).toBeInTheDocument();
+    expect(screen.getByText('Consistency is who I am.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^7 months/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText(/Standard \/ by 25 APR 2027/)).toBeInTheDocument();
+    expect(screen.getByText('Days to my 7-month self')).toBeInTheDocument();
     const recovery = new URL(screen.getByRole('link', { name: /Restart with 5 minutes/ }).getAttribute('href')!, 'https://example.com');
     expect(recovery.searchParams.get('minutes')).toBe('5');
     expect(recovery.searchParams.get('intent')).toBeTruthy();
@@ -28,7 +33,11 @@ describe('FutureSelf', () => {
     vi.mocked(endFocusSession).mockResolvedValue({ id: 'session-1', ended_at: '2026-09-25T12:00:00Z', completed: false });
     const user = userEvent.setup();
     const { unmount } = render(<FutureSelf {...props} />);
-    expect(screen.getByLabelText('One concrete next action (optional)')).not.toBeRequired();
+    const session = within(screen.getByRole('region', { name: '[ Today / focus session ]' }));
+    expect(session.getByText('A concrete action plan is optional.')).toBeInTheDocument();
+    expect(session.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(session.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(session.queryByRole('spinbutton')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Arm session' }));
     expect(startFocusSession).toHaveBeenCalledWith({ planned_minutes: 25, intent: undefined, linked_goal_id: null, linked_habit_id: null });
     expect(await screen.findByTestId('focus-elapsed')).toBeInTheDocument();
@@ -43,7 +52,7 @@ describe('FutureSelf', () => {
   it('uses the shared goal, timer habit, action, and duration controls', async () => {
     vi.mocked(startFocusSession).mockResolvedValue({ id: 'session-2' });
     const user = userEvent.setup();
-    render(<FutureSelf {...props} focusOptions={{
+    render(<FocusConsole {...{
       goalOptions: [{ id: 'goal-1', label: 'Learn Python' }, { id: 'goal-2', label: 'Read more' }],
       habitOptions: [
         { id: 'habit-1', label: 'Python practice', kind: 'timer', goalId: 'goal-1' },
@@ -59,32 +68,50 @@ describe('FutureSelf', () => {
     expect(startFocusSession).toHaveBeenCalledWith({ planned_minutes: 45, intent: 'Solve one exercise', linked_goal_id: 'goal-1', linked_habit_id: 'habit-1' });
   });
 
-  it('retains edits when saving fails and allows retry', async () => {
-    vi.mocked(saveSelfImage).mockResolvedValueOnce({ error: 'Try again.' }).mockResolvedValueOnce({ success: true });
+  it('loads the strict protocol into an empty horizon', async () => {
+    vi.mocked(loadSelfImageProtocol).mockResolvedValue({ success: true });
     const user = userEvent.setup();
     render(<FutureSelf {...props} />);
-    await user.click(screen.getByRole('button', { name: 'Make it mine' }));
-    const input = screen.getByLabelText('Identity statement');
-    await user.clear(input);
-    await user.type(input, 'I build every day.');
-    await user.click(screen.getByRole('button', { name: 'Save my vision' }));
-    expect(await screen.findByText('Try again.')).toBeInTheDocument();
-    expect(input).toHaveValue('I build every day.');
-    await user.click(screen.getByRole('button', { name: 'Save my vision' }));
-    expect(await screen.findByText(/Saved. This is the direction/)).toBeInTheDocument();
-    expect(saveSelfImage).toHaveBeenLastCalledWith(expect.objectContaining({ months: 2, title: 'I build every day.' }), undefined);
+    await user.click(screen.getByRole('button', { name: /^15 months/i }));
+    await user.click(screen.getByRole('button', { name: /Load strict protocol/ }));
+    expect(loadSelfImageProtocol).toHaveBeenCalledWith(15);
+    expect(await screen.findByText('[PROTOCOL LOADED]')).toBeInTheDocument();
   });
 
-  it('updates saved visions by id and distinguishes unavailable data from zero activity', async () => {
-    vi.mocked(saveSelfImage).mockResolvedValue({ success: true });
+  it('adds, edits, and deletes statements, keeping drafts on failure', async () => {
+    vi.mocked(createSelfImageItem).mockResolvedValueOnce({ error: 'Try again.' }).mockResolvedValueOnce({ success: true });
+    vi.mocked(updateSelfImageItem).mockResolvedValue({ success: true });
+    vi.mocked(deleteSelfImageItem).mockResolvedValue({ success: true });
     const user = userEvent.setup();
-    const saved = { ...STARTER_SELF_IMAGES[0], id: 'saved-vision' };
-    const { rerender } = render(<FutureSelf {...props} images={[saved]} />);
-    await user.click(screen.getByRole('button', { name: 'Make it mine' }));
-    await user.click(screen.getByRole('button', { name: 'Save my vision' }));
-    expect(saveSelfImage).toHaveBeenCalledWith(expect.anything(), saved.id);
-    rerender(<FutureSelf {...props} imagesAvailable={false} evidenceAvailable={false} />);
-    expect(within(screen.getByRole('region', { name: '02 / How I’m actually going' })).getByRole('status')).toHaveTextContent('Focus history is unavailable');
-    expect(screen.getByRole('button', { name: 'Close editor' })).toBeDisabled();
+    const item = { id: 'item-1', months: 2 as const, pillar: 'salah' as const, body: 'I pray on time.' };
+    render(<FutureSelf {...props} items={[item]} />);
+    expect(screen.queryByRole('button', { name: /Load strict protocol/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Add to Machine learning' }));
+    const draft = screen.getByLabelText('New Machine learning statement');
+    await user.type(draft, 'I study daily.{Enter}');
+    expect(await screen.findByText('[ERROR: Try again.]')).toBeInTheDocument();
+    expect(draft).toHaveValue('I study daily.');
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    expect(createSelfImageItem).toHaveBeenLastCalledWith({ months: 2, pillar: 'ml', body: 'I study daily.' });
+
+    await user.click(screen.getByRole('button', { name: 'Edit: I pray on time.' }));
+    const edit = screen.getByLabelText('Edit statement');
+    await user.clear(edit);
+    await user.type(edit, 'I pray every prayer on time.');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(updateSelfImageItem).toHaveBeenCalledWith('item-1', 'I pray every prayer on time.');
+
+    await user.click(screen.getByRole('button', { name: 'Delete: I pray on time.' }));
+    expect(deleteSelfImageItem).not.toHaveBeenCalled();
+    await user.click(within(screen.getByRole('group', { name: 'Confirm delete' })).getByRole('button', { name: 'Yes' }));
+    expect(deleteSelfImageItem).toHaveBeenCalledWith('item-1');
+  });
+
+  it('distinguishes unavailable data from zero activity', () => {
+    render(<FutureSelf {...props} itemsAvailable={false} evidenceAvailable={false} />);
+    expect(within(screen.getByRole('region', { name: '[ Last 14 days / evidence ]' })).getByRole('status')).toHaveTextContent('Focus history is unavailable');
+    expect(screen.getByText(/self-image list is temporarily unavailable/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add to Salah' })).toBeDisabled();
   });
 });
