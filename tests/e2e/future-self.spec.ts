@@ -20,8 +20,17 @@ test('future self: protocol, CRUD, owner isolation, responsive themes, and focus
     await page.goto('/');
     for (const month of [7, 15, 2]) {
       await page.getByRole('button', { name: new RegExp(`^${month} months:`) }).click();
-      await expect(page.getByText(`Days to my ${month}-month self`)).toBeVisible();
+      await expect(page.getByText(`Days left to my ${month}-month self`)).toBeVisible();
     }
+
+    // Move the runway start back a week: the countdown must follow it.
+    const tashkentToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tashkent' }).format(new Date());
+    const weekAgo = new Date(Date.parse(tashkentToday) - 7 * 86_400_000).toISOString().slice(0, 10);
+    await expect(page.getByText(/Foundation \/ day 001 of/)).toBeVisible();
+    await page.getByRole('button', { name: /Change start date/ }).click();
+    await page.getByLabel('Started on').fill(weekAgo);
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText(/Foundation \/ day 008 of/)).toBeVisible();
 
     await page.getByRole('button', { name: /Load strict protocol/ }).click();
     await expect(page.getByText('I wake at the same time every day, weekends included.')).toBeVisible();

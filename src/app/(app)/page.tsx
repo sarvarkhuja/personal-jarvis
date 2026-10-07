@@ -57,7 +57,7 @@ export default async function HomePage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, timezone, target_weight_kg')
+    .select('display_name, timezone, target_weight_kg, future_self_started_on')
     .eq('id', userId)
     .single();
   const displayName =
@@ -368,6 +368,7 @@ export default async function HomePage() {
           <FutureSelf
             items={(selfImagesResult.data ?? []) as SelfImageItem[]}
             today={today}
+            startedOn={(profile as { future_self_started_on?: string | null } | null)?.future_self_started_on ?? today}
             evidence={buildAttentionEvidence(focusSessions, today)}
             evidenceAvailable={!focusSessionsResult.error}
             itemsAvailable={!selfImagesResult.error}

@@ -110,6 +110,24 @@ export function horizonDate(start: string, months: number): string {
   return end.toISOString().slice(0, 10);
 }
 
+function daysBetween(start: string, end: string) {
+  return Math.round((Date.parse(end) - Date.parse(start)) / 86_400_000);
+}
+
+/** Horizons are fixed from the start date, so the countdown moves as days pass. */
+export function buildRunway(start: string, today: string) {
+  const ends = FUTURE_HORIZONS.map((months) => ({ months, end: horizonDate(start, months) }));
+  const total = daysBetween(start, ends[ends.length - 1].end);
+  const elapsed = Math.min(total, Math.max(0, daysBetween(start, today)));
+  const spans = ends.map(({ months, end }) => {
+    const length = daysBetween(start, end);
+    return { months, end, length, remaining: Math.max(0, length - elapsed), reached: elapsed >= length };
+  });
+  return { start, total, elapsed, day: Math.min(total, elapsed + 1), weeks: Math.ceil(total / 7), spans };
+}
+
+export type Runway = ReturnType<typeof buildRunway>;
+
 export function attentionProjection(start: string, months: number, minutes: number, missedDaysPerWeek: number) {
   const end = horizonDate(start, months);
   const days = Math.round((Date.parse(end) - Date.parse(start)) / 86_400_000);

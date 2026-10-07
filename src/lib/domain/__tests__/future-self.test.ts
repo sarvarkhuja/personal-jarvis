@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attentionProjection, buildAttentionEvidence, groupSelfImage, horizonDate, protocolItems } from '../future-self';
+import { attentionProjection, buildAttentionEvidence, buildRunway, groupSelfImage, horizonDate, protocolItems } from '../future-self';
 
 describe('future self projections', () => {
   it('uses calendar months and clamps at month-end, including leap years', () => {
@@ -51,5 +51,34 @@ describe('self-image protocol', () => {
     ], 2);
     expect(grouped.map((group) => group.key)).toEqual(['discipline', 'ml', 'physique', 'salah', 'work']);
     expect(grouped.find((group) => group.key === 'salah')!.items.map((item) => item.id)).toEqual(['b']);
+  });
+});
+
+describe('horizon runway', () => {
+  it('counts down from a fixed start instead of rolling with today', () => {
+    const day1 = buildRunway('2026-10-06', '2026-10-06');
+    const day2 = buildRunway('2026-10-06', '2026-10-07');
+    expect(day1.spans.map((span) => span.remaining)).toEqual([61, 212, 457]);
+    expect(day2.spans.map((span) => span.remaining)).toEqual([60, 211, 456]);
+    expect(day2.elapsed).toBe(1);
+    expect(day2.day).toBe(2);
+    expect(day2.total).toBe(457);
+    expect(day2.weeks).toBe(66);
+    expect(day2.spans[0]).toMatchObject({ months: 2, end: '2026-12-06', length: 61, reached: false });
+  });
+
+  it('marks passed horizons as reached and clamps past the last one', () => {
+    const later = buildRunway('2026-10-06', '2026-12-10');
+    expect(later.spans[0]).toMatchObject({ remaining: 0, reached: true });
+    expect(later.spans[1].reached).toBe(false);
+    const done = buildRunway('2026-10-06', '2028-03-01');
+    expect(done.elapsed).toBe(done.total);
+    expect(done.spans.every((span) => span.reached)).toBe(true);
+  });
+
+  it('treats a start date after today as not started yet', () => {
+    const early = buildRunway('2026-10-10', '2026-10-07');
+    expect(early.elapsed).toBe(0);
+    expect(early.spans[0].remaining).toBe(61);
   });
 });

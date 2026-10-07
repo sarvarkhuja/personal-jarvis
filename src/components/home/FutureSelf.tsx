@@ -6,14 +6,16 @@ import { FocusConsole, type FocusConsoleProps } from '@/components/focus/FocusCo
 import { HorizonRunway } from '@/components/home/HorizonRunway';
 import { SelfImageList } from '@/components/home/SelfImageList';
 import { cn } from '@/lib/utils';
-import { FUTURE_HORIZONS, type AttentionEvidence } from '@/lib/domain/future-self';
+import { FUTURE_HORIZONS, buildRunway, type AttentionEvidence } from '@/lib/domain/future-self';
 import type { SelfImageItem, SelfImageMonths } from '@/lib/schemas/self-images';
 
 const label = 'font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary';
 
-export function FutureSelf({ items, today, evidence, evidenceAvailable, itemsAvailable, goal, focusOptions }: {
+export function FutureSelf({ items, today, startedOn, evidence, evidenceAvailable, itemsAvailable, goal, focusOptions }: {
   items: SelfImageItem[];
   today: string;
+  /** Day the runway counts from (profiles.future_self_started_on). */
+  startedOn: string;
   evidence: AttentionEvidence;
   evidenceAvailable: boolean;
   itemsAvailable: boolean;
@@ -29,7 +31,7 @@ export function FutureSelf({ items, today, evidence, evidenceAvailable, itemsAva
     <section aria-labelledby="future-self-title" className="flex flex-col gap-16 py-8 md:gap-24">
       <div>
         <h2 id="future-self-title" className={cn(label, 'mb-10 md:mb-14')}>[ Future self / built daily ]</h2>
-        <HorizonRunway today={today} selected={selected} onSelect={setSelected} counts={counts} />
+        <HorizonRunway runway={buildRunway(startedOn, today)} today={today} selected={selected} onSelect={setSelected} counts={counts} />
       </div>
 
       <SelfImageList items={items} months={selected} available={itemsAvailable} />

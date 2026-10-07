@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/action';
 import { requireUserId } from '@/lib/auth/server-user';
 import { SelfImageItemSchema, SelfImageMonthsSchema, type SelfImageItemInput } from '@/lib/schemas/self-images';
 import { protocolItems } from '@/lib/domain/future-self';
+import { toUserDate } from '@/lib/domain/timezone';
 
 type Result = { success: true } | { error: string };
 
@@ -71,6 +72,23 @@ export async function loadSelfImageProtocol(months: number): Promise<Result> {
   if (error) {
     console.error('[loadSelfImageProtocol]', error);
     return { error: 'Could not load the protocol. Try again.' };
+  }
+  revalidatePath('/');
+  return { success: true };
+}
+
+/** Moves the day the future-self runway counts from. Must be a real date, not in the future. */
+export async function setFutureSelfStart(date: string): Promise<Result> {
+  const userId = await requireUserId();
+  if (!z.iso.date().safeParse(date).success) return { error: 'Pick a valid date.' };
+  const supabase = await createClient();
+  const { data: profile } = await supabase.from('profiles').select('timezone').eq('id', userId).single();
+  const today = toUserDate(new Date(), (profile as { timezone?: string } | null)?.timezone ?? 'UTC');
+  if (date > today) return { error: 'The start date can’t be in the future.' };
+  const { error } = await supabase.from('profiles').update({ future_self_started_on: date }).eq('id', userId);
+  if (error) {
+    console.error('[setFutureSelfStart]', error);
+    return { error: 'Could not save the start date. Try again.' };
   }
   revalidatePath('/');
   return { success: true };

@@ -4,15 +4,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FutureSelf } from './FutureSelf';
 import { FocusConsole } from '@/components/focus/FocusConsole';
 import { buildAttentionEvidence } from '@/lib/domain/future-self';
-import { createSelfImageItem, deleteSelfImageItem, loadSelfImageProtocol, updateSelfImageItem } from '@/lib/actions/self-images';
+import { createSelfImageItem, deleteSelfImageItem, loadSelfImageProtocol, setFutureSelfStart, updateSelfImageItem } from '@/lib/actions/self-images';
 import { startFocusSession, endFocusSession } from '@/lib/actions/focus';
 
 vi.mock('@/lib/actions/self-images', () => ({
-  createSelfImageItem: vi.fn(), updateSelfImageItem: vi.fn(), deleteSelfImageItem: vi.fn(), loadSelfImageProtocol: vi.fn(),
+  setFutureSelfStart: vi.fn(), createSelfImageItem: vi.fn(), updateSelfImageItem: vi.fn(), deleteSelfImageItem: vi.fn(), loadSelfImageProtocol: vi.fn(),
 }));
 vi.mock('@/lib/actions/focus', () => ({ startFocusSession: vi.fn(), endFocusSession: vi.fn() }));
 afterEach(() => { cleanup(); window.localStorage.clear(); vi.clearAllMocks(); });
-const props = { items: [], today: '2026-09-25', evidence: buildAttentionEvidence([], '2026-09-25'), evidenceAvailable: true, itemsAvailable: true, focusOptions: { goalOptions: [], habitOptions: [] } };
+const props = { items: [], today: '2026-09-25', startedOn: '2026-09-25', evidence: buildAttentionEvidence([], '2026-09-25'), evidenceAvailable: true, itemsAvailable: true, focusOptions: { goalOptions: [], habitOptions: [] } };
 
 describe('FutureSelf', () => {
   it('changes horizons and keeps the quick recovery shortcut', async () => {
@@ -21,8 +21,8 @@ describe('FutureSelf', () => {
     await user.click(screen.getByRole('button', { name: /^7 months/i }));
     expect(screen.getByText('Consistency is who I am.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^7 months/i })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText(/Standard \/ by 25 APR 2027/)).toBeInTheDocument();
-    expect(screen.getByText('Days to my 7-month self')).toBeInTheDocument();
+    expect(screen.getByText(/Standard \/ day 001 of 212 \/ by 25 APR 2027/)).toBeInTheDocument();
+    expect(screen.getByText('Days left to my 7-month self')).toBeInTheDocument();
     const recovery = new URL(screen.getByRole('link', { name: /Restart with 5 minutes/ }).getAttribute('href')!, 'https://example.com');
     expect(recovery.searchParams.get('minutes')).toBe('5');
     expect(recovery.searchParams.get('intent')).toBeTruthy();
@@ -66,6 +66,22 @@ describe('FutureSelf', () => {
     await user.click(screen.getByRole('button', { name: '45' }));
     await user.click(screen.getByRole('button', { name: 'Arm session' }));
     expect(startFocusSession).toHaveBeenCalledWith({ planned_minutes: 45, intent: 'Solve one exercise', linked_goal_id: 'goal-1', linked_habit_id: 'habit-1' });
+  });
+
+  it('counts down from the start date and lets it be changed', async () => {
+    vi.mocked(setFutureSelfStart).mockResolvedValueOnce({ error: 'The start date can’t be in the future.' }).mockResolvedValueOnce({ success: true });
+    const user = userEvent.setup();
+    render(<FutureSelf {...props} startedOn="2026-09-20" />);
+    expect(screen.getByText(/Foundation \/ day 006 of 061/)).toBeInTheDocument();
+    expect(screen.getByText('056')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Started 20 SEPT? 2026/ }));
+    const input = screen.getByLabelText('Started on');
+    await user.clear(input);
+    await user.type(input, '2026-09-01');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText(/can’t be in the future/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(setFutureSelfStart).toHaveBeenLastCalledWith('2026-09-01');
   });
 
   it('loads the strict protocol into an empty horizon', async () => {
