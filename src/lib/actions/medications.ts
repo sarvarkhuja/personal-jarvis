@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
 import { requireUserId } from '@/lib/auth/server-user';
 import {
@@ -38,9 +38,7 @@ export async function createMedication(input: CreateMedicationInput) {
     .single();
 
   if (error) failed('createMedication', error);
-  revalidatePath('/pills');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'medications');
   return data;
 }
 
@@ -55,9 +53,7 @@ export async function archiveMedication(input: ArchiveMedicationInput) {
     .eq('user_id', userId);
 
   if (error) failed('archiveMedication', error);
-  revalidatePath('/pills');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'medications');
 }
 
 export async function deleteMedication(input: DeleteMedicationInput) {
@@ -71,9 +67,7 @@ export async function deleteMedication(input: DeleteMedicationInput) {
     .eq('user_id', userId);
 
   if (error) failed('deleteMedication', error);
-  revalidatePath('/pills');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'medications', 'medication_logs');
 }
 
 export async function toggleMedicationCompletion(input: ToggleMedicationInput) {
@@ -87,7 +81,5 @@ export async function toggleMedicationCompletion(input: ToggleMedicationInput) {
   });
 
   if (error) failed('toggleMedicationCompletion', error);
-  revalidatePath('/pills');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'medication_logs');
 }

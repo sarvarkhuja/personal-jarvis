@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
 import { requireUserId } from '@/lib/auth/server-user';
 import {
@@ -84,7 +84,7 @@ export async function uploadProgressPhoto(formData: FormData) {
     failed('uploadProgressPhoto', insertError);
   }
 
-  revalidatePath('/workout');
+  invalidateUserData(userId, 'progress_photos');
 }
 
 export async function deleteProgressPhoto(input: DeleteProgressPhotoInput) {
@@ -114,5 +114,5 @@ export async function deleteProgressPhoto(input: DeleteProgressPhotoInput) {
     .eq('user_id', userId);
 
   if (deleteError) failed('deleteProgressPhoto', deleteError);
-  revalidatePath('/workout');
+  invalidateUserData(userId, 'progress_photos');
 }

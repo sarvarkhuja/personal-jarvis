@@ -119,6 +119,10 @@ export function WeeklyCheckCard({
                   <img
                     src={p.signed_url}
                     alt={fmt(p.date)}
+                    loading="lazy"
+                    decoding="async"
+                    width={240}
+                    height={320}
                     className="h-full w-full object-cover"
                   />
                 ) : (

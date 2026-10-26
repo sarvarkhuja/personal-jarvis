@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server';
+import { createReadClient } from '@/lib/supabase/read';
 import { requireUserId } from '@/lib/auth/server-user';
+import { loadProfile } from '@/lib/data/profile';
 import { toUserDate } from '@/lib/domain/timezone';
 import {
   addDays,
@@ -33,13 +34,17 @@ export default async function FocusPage({ searchParams }: {
   const initialMinutes = Number.isInteger(requestedMinutes) && requestedMinutes >= 1 && requestedMinutes <= 180 ? requestedMinutes : 25;
   const initialIntent = typeof query.intent === 'string' ? query.intent.slice(0, 280) : '';
   const userId = await requireUserId();
-  const supabase = await createClient();
+  const supabase = await createReadClient(userId);
   const now = new Date();
-  const sinceIso = new Date(now.getTime() - WINDOW_MS).toISOString();
+  // A stable UTC-day floor keeps cache keys reusable across navigations while
+  // retaining the full local-day history window filtered below.
+  const since = new Date(now.getTime() - WINDOW_MS);
+  since.setUTCHours(0, 0, 0, 0);
+  const sinceIso = since.toISOString();
 
-  const [profileResult, goalsResult, habitsResult, sessionsResult] =
+  const [profile, goalsResult, habitsResult, sessionsResult] =
     await Promise.all([
-      supabase.from('profiles').select('timezone').eq('id', userId).single(),
+      loadProfile(userId),
       supabase
         .from('goals')
         .select('id, title, status')
@@ -61,8 +66,7 @@ export default async function FocusPage({ searchParams }: {
         .order('started_at', { ascending: false }),
     ]);
 
-  const tz =
-    (profileResult.data as { timezone?: string } | null)?.timezone ?? 'UTC';
+  const tz = profile.timezone ?? 'UTC';
   const today = toUserDate(now, tz);
   const windowStart = addDays(today, -60);
 

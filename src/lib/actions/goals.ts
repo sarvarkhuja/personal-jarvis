@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
 import { requireUserId } from '@/lib/auth/server-user';
 import {
@@ -50,9 +50,7 @@ export async function createGoal(input: CreateGoalInput) {
     .single();
 
   if (error) failed('createGoal', error);
-  revalidatePath('/goals');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'goals');
   return data;
 }
 
@@ -76,9 +74,7 @@ export async function updateGoal(input: UpdateGoalInput) {
     .single();
 
   if (error) failed('updateGoal', error);
-  revalidatePath('/goals');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'goals');
   return data;
 }
 
@@ -93,9 +89,7 @@ export async function setGoalStatus(input: SetGoalStatusInput) {
     .eq('user_id', userId);
 
   if (error) failed('setGoalStatus', error);
-  revalidatePath('/goals');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'goals');
 }
 
 export async function linkGoalToHabit(input: LinkGoalToHabitInput) {
@@ -109,9 +103,7 @@ export async function linkGoalToHabit(input: LinkGoalToHabitInput) {
     .eq('user_id', userId);
 
   if (error) failed('linkGoalToHabit', error);
-  revalidatePath('/goals');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'goals');
 }
 
 export async function addSubGoal(input: AddSubGoalInput) {
@@ -130,7 +122,6 @@ export async function deleteGoal(input: DeleteGoalInput) {
     .eq('user_id', userId);
 
   if (error) failed('deleteGoal', error);
-  revalidatePath('/goals');
-  revalidatePath('/today');
-  revalidatePath('/');
+  // Goal deletion cascades to its habits/logs and clears linked foreign keys.
+  invalidateUserData(userId, 'goals', 'habits', 'habit_logs', 'events', 'focus_sessions');
 }

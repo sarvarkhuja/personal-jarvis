@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server';
+import { createReadClient } from '@/lib/supabase/read';
 import { requireUserId } from '@/lib/auth/server-user';
+import { loadProfile } from '@/lib/data/profile';
 import { computeStreak } from '@/lib/domain/streak';
 import { isHabitDueOn } from '@/lib/domain/schedule';
 import { toUserDate } from '@/lib/domain/timezone';
@@ -38,22 +39,14 @@ type HabitLogRecord = {
 
 export default async function HabitsPage() {
   const userId = await requireUserId();
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('timezone')
-    .eq('id', userId)
-    .single();
-  const tz = (profile as { timezone?: string } | null)?.timezone ?? 'UTC';
-
-  const today = toUserDate(new Date(), tz);
+  const supabase = await createReadClient(userId);
 
   const since = new Date();
   since.setDate(since.getDate() - 60);
   const sinceISO = since.toISOString().slice(0, 10);
 
-  const [habitsResult, logsResult, goalsResult] = await Promise.all([
+  const [profile, habitsResult, logsResult, goalsResult] = await Promise.all([
+    loadProfile(userId),
     supabase
       .from('habits')
       .select('id, name, kind, color, frequency_json, scheduled_time, archived_at, is_active, created_at')
@@ -72,6 +65,9 @@ export default async function HabitsPage() {
       .eq('status', 'active')
       .order('created_at', { ascending: true }),
   ]);
+
+  const tz = profile.timezone ?? 'UTC';
+  const today = toUserDate(new Date(), tz);
 
   const habits = (habitsResult.data ?? []) as HabitRecord[];
   const logs = (logsResult.data ?? []) as HabitLogRecord[];

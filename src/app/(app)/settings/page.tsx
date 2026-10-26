@@ -3,8 +3,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { requireUserId } from '@/lib/auth/server-user';
 import { DeleteAccountButton } from '@/components/account/DeleteAccountButton';
-import { createClient } from '@/lib/supabase/server';
-import { loadSalahConfig } from '@/lib/data/salah';
+import { createReadClient } from '@/lib/supabase/read';
+import { loadSalahSettings } from '@/lib/data/salah';
 import {
   SalahSettingsForm,
   type SalahSettingsValues,
@@ -12,15 +12,10 @@ import {
 
 export default async function SettingsPage() {
   const userId = await requireUserId();
-  const supabase = await createClient();
-  const cfg = await loadSalahConfig(supabase, userId);
-  const { data: cityRow } = await supabase
-    .from('salah_settings')
-    .select('city')
-    .eq('user_id', userId)
-    .maybeSingle();
+  const supabase = await createReadClient(userId);
+  const { city, config: cfg } = await loadSalahSettings(supabase, userId);
   const salahInitial: SalahSettingsValues = {
-    city: (cityRow as { city?: string } | null)?.city ?? 'Tashkent',
+    city,
     latitude: cfg.latitude,
     longitude: cfg.longitude,
     timezone: cfg.timezone,

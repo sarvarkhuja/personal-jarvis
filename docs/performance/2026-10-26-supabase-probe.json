@@ -1,0 +1,243 @@
+{
+  "sampledAt": "2026-10-26T17:07:31.240Z",
+  "mode": "read-only-service-role; RLS bypassed",
+  "connectivity": [
+    {
+      "sample": 1,
+      "status": 200,
+      "ms": 1762
+    },
+    {
+      "sample": 2,
+      "status": 200,
+      "ms": 556
+    },
+    {
+      "sample": 3,
+      "status": 200,
+      "ms": 464
+    }
+  ],
+  "requests": [
+    {
+      "label": "sample-profile",
+      "ms": 893,
+      "status": 200,
+      "rows": 1,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:profile",
+      "ms": 487,
+      "status": 200,
+      "rows": 1,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:habit_logs",
+      "ms": 479,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:habits",
+      "ms": 1323,
+      "status": 200,
+      "rows": 1,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:medications",
+      "ms": 1339,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:salah_logs",
+      "ms": 1361,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:body_metrics",
+      "ms": 1414,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:expenses",
+      "ms": 1415,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:medication_logs",
+      "ms": 1416,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:weekly_lifts",
+      "ms": 1419,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:goals",
+      "ms": 1420,
+      "status": 200,
+      "rows": 1,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:focus_sessions",
+      "ms": 1427,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:events",
+      "ms": 1449,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:self_image_items",
+      "ms": 1452,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-1:salah_settings",
+      "ms": 451,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:profile",
+      "ms": 463,
+      "status": 200,
+      "rows": 1,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:medication_logs",
+      "ms": 451,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:medications",
+      "ms": 457,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:body_metrics",
+      "ms": 468,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:expenses",
+      "ms": 487,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:weekly_lifts",
+      "ms": 487,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:goals",
+      "ms": 493,
+      "status": 200,
+      "rows": 1,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:salah_logs",
+      "ms": 498,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:events",
+      "ms": 499,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:habits",
+      "ms": 500,
+      "status": 200,
+      "rows": 1,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:self_image_items",
+      "ms": 500,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:focus_sessions",
+      "ms": 520,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:habit_logs",
+      "ms": 1186,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    },
+    {
+      "label": "home-2:salah_settings",
+      "ms": 439,
+      "status": 200,
+      "rows": 0,
+      "errorCode": null
+    }
+  ],
+  "jwks": {
+    "keyCount": 1,
+    "algorithms": [
+      "ES256"
+    ]
+  },
+  "linkedPoolerRegion": "ap-southeast-2",
+  "homeApproximation1": {
+    "parallelWaveMs": 1453,
+    "totalMs": 2391,
+    "excludes": "auth, RLS, Next rendering; event/lift windows approximate"
+  },
+  "homeApproximation2": {
+    "parallelWaveMs": 1186,
+    "totalMs": 2088,
+    "excludes": "auth, RLS, Next rendering; event/lift windows approximate"
+  }
+}

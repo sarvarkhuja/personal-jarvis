@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server';
+import { createReadClient } from '@/lib/supabase/read';
 import { requireUserId } from '@/lib/auth/server-user';
+import { loadProfile } from '@/lib/data/profile';
 import { toUserDate, userDayBounds } from '@/lib/domain/timezone';
 import { formatInTimeZone } from 'date-fns-tz';
 import { isHabitDueOn } from '@/lib/domain/schedule';
@@ -13,14 +14,29 @@ import { DayStrip, type StripEvent } from '@/components/today/DayStrip';
 
 export default async function TodayPage() {
   const userId = await requireUserId();
-  const supabase = await createClient();
+  const supabase = await createReadClient(userId);
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('timezone')
-    .eq('id', userId)
-    .single();
-  const tz = (profile as { timezone?: string } | null)?.timezone ?? 'UTC';
+  // These lists do not depend on the profile's timezone. Start them while
+  // loading the profile, then fetch only date-bound data after it resolves.
+  const listsPromise = Promise.all([
+    supabase
+      .from('habits')
+      .select('id, name, kind, frequency_json')
+      .eq('user_id', userId)
+      .is('archived_at', null),
+    supabase
+      .from('medications')
+      .select('id, name')
+      .eq('user_id', userId)
+      .is('archived_at', null),
+    supabase
+      .from('goals')
+      .select('id, title, status, target_date')
+      .eq('user_id', userId)
+      .eq('status', 'active'),
+  ]);
+  const profile = await loadProfile(userId);
+  const tz = profile.timezone ?? 'UTC';
 
   const now = new Date();
   const today = toUserDate(now, tz);
@@ -33,19 +49,13 @@ export default async function TodayPage() {
     userDayBounds(tomorrow, tz);
 
   const [
-    habitsResult,
+    [habitsResult, medicationsResult, activeGoalsResult],
     todayHabitLogsResult,
-    medicationsResult,
     todayDoseLogsResult,
-    activeGoalsResult,
     upcomingEventsResult,
     focusSessionsResult,
   ] = await Promise.all([
-    supabase
-      .from('habits')
-      .select('id, name, kind, frequency_json')
-      .eq('user_id', userId)
-      .is('archived_at', null),
+    listsPromise,
     supabase
       .from('habit_logs')
       .select('habit_id, log_date, value')
@@ -53,20 +63,10 @@ export default async function TodayPage() {
       .gte('logged_at', startUtc.toISOString())
       .lt('logged_at', endUtc.toISOString()),
     supabase
-      .from('medications')
-      .select('id, name')
-      .eq('user_id', userId)
-      .is('archived_at', null),
-    supabase
       .from('medication_logs')
       .select('medication_id, log_date')
       .eq('user_id', userId)
       .eq('log_date', today),
-    supabase
-      .from('goals')
-      .select('id, title, status, target_date')
-      .eq('user_id', userId)
-      .eq('status', 'active'),
     supabase
       .from('events')
       .select('id, title, starts_at, ends_at, kind')

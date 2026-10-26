@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createReadClient } from '@/lib/supabase/read';
 import { requireUserId } from '@/lib/auth/server-user';
 import { toUserDate } from '@/lib/domain/timezone';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -24,7 +24,7 @@ import { SalahTallyCard } from '@/components/salah/SalahTallyCard';
 
 export default async function SalahPage() {
   const userId = await requireUserId();
-  const supabase = await createClient();
+  const supabase = await createReadClient(userId);
   const cfg = await loadSalahConfig(supabase, userId);
 
   const now = new Date();

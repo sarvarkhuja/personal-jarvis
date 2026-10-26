@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
 import { requireUserId } from '@/lib/auth/server-user';
 import {
@@ -47,7 +47,7 @@ export async function upsertBodyMetrics(input: UpsertBodyMetricsInput) {
     .single();
 
   if (error) failed('upsertBodyMetrics', error);
-  revalidatePath('/workout');
+  invalidateUserData(userId, 'body_metrics');
   return data;
 }
 
@@ -62,5 +62,5 @@ export async function deleteBodyMetrics(input: DeleteBodyMetricsInput) {
     .eq('user_id', userId);
 
   if (error) failed('deleteBodyMetrics', error);
-  revalidatePath('/workout');
+  invalidateUserData(userId, 'body_metrics');
 }

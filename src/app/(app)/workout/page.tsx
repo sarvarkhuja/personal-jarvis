@@ -1,9 +1,12 @@
-import { createClient } from '@/lib/supabase/server'
+import { Suspense } from 'react'
+import { createReadClient } from '@/lib/supabase/read'
 import { requireUserId } from '@/lib/auth/server-user'
+import { loadProfile } from '@/lib/data/profile'
 import { WeeklyLiftsHero } from '@/components/workout/WeeklyLiftsHero'
 import { WeeklyCheckCard } from '@/components/workout/WeeklyCheckCard'
 import { ProgressionCard } from '@/components/workout/ProgressionCard'
 import { WeightTrendCard } from '@/components/workout/WeightTrendCard'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatUTCDate } from '@/lib/utils/workout-metrics'
 import {
   weekStart,
@@ -18,16 +21,91 @@ const PROGRESS_PHOTO_BUCKET = 'progress-photos'
 const HISTORY_WEEKS = 8
 const WEIGHT_TREND_DAYS = 90
 
+type RecentPhoto = { id: string; date: string; signed_url: string | null }
+
+async function loadRecentPhotos(
+  supabase: Awaited<ReturnType<typeof createReadClient>>,
+  userId: string,
+): Promise<RecentPhoto[]> {
+  const { data } = await supabase
+    .from('progress_photos')
+    .select('id, date, storage_path, thumbnail_path')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .limit(4)
+  const photos = (data ?? []) as Pick<ProgressPhoto, 'id' | 'date' | 'storage_path' | 'thumbnail_path'>[]
+  if (photos.length === 0) return []
+
+  try {
+    const { data: signed } = await supabase.storage
+      .from(PROGRESS_PHOTO_BUCKET)
+      .createSignedUrls(photos.map((p) => p.thumbnail_path ?? p.storage_path), 60 * 60)
+    const urlsByPath = new Map(
+      (signed ?? []).filter((entry) => !entry.error).map((entry) => [entry.path, entry.signedUrl]),
+    )
+    return photos.map((p) => ({
+      id: p.id,
+      date: p.date,
+      signed_url: urlsByPath.get(p.thumbnail_path ?? p.storage_path) ?? null,
+    }))
+  } catch {
+    return photos.map((p) => ({ id: p.id, date: p.date, signed_url: null }))
+  }
+}
+
+async function WeeklyCheckSection({
+  photosPromise,
+  today,
+  thisMonday,
+  hasWeighInThisWeek,
+  recentWeights,
+}: {
+  photosPromise: Promise<RecentPhoto[]>
+  today: string
+  thisMonday: string
+  hasWeighInThisWeek: boolean
+  recentWeights: { date: string; weight: number | null }[]
+}) {
+  const recentPhotos = await photosPromise
+  return (
+    <WeeklyCheckCard
+      today={today}
+      hasWeighInThisWeek={hasWeighInThisWeek}
+      recentWeights={recentWeights}
+      hasPhotoThisWeek={recentPhotos.some((p) => p.date >= thisMonday)}
+      recentPhotos={recentPhotos}
+    />
+  )
+}
+
+function WeeklyCheckSkeleton() {
+  return (
+    <section
+      role="status"
+      aria-label="Loading weekly check"
+      className="mb-4 flex min-h-64 break-inside-avoid flex-col gap-6 rounded-lg border border-border bg-surface p-6"
+    >
+      <span className="sr-only">Loading weekly check…</span>
+      <Skeleton aria-hidden className="h-4 w-32 motion-reduce:animate-none" />
+      <Skeleton aria-hidden className="h-12 w-full motion-reduce:animate-none" />
+      <Skeleton aria-hidden className="h-12 w-full motion-reduce:animate-none" />
+    </section>
+  )
+}
+
 export default async function WorkoutPage() {
   const userId = await requireUserId()
-  const supabase = await createClient()
+  const supabase = await createReadClient(userId)
 
   const today = new Date().toISOString().split('T')[0]
   const thisMonday = weekStart(today)
   const liftWindowStart = addDays(thisMonday, -7 * (HISTORY_WEEKS - 1))
   const weightWindowStart = addDays(today, -(WEIGHT_TREND_DAYS - 1))
 
-  const [weeklyLiftsResult, bodyMetricsResult, progressPhotosResult, profileResult] =
+  // Signing depends only on the photos query, so let that pipeline run while
+  // the independent lift, weight and profile reads finish.
+  const photosPromise = loadRecentPhotos(supabase, userId)
+  const [weeklyLiftsResult, bodyMetricsResult, profile] =
     await Promise.all([
       supabase
         .from('weekly_lifts')
@@ -41,22 +119,11 @@ export default async function WorkoutPage() {
         .eq('user_id', userId)
         .gte('date', weightWindowStart)
         .order('date', { ascending: false }),
-      supabase
-        .from('progress_photos')
-        .select('id, user_id, date, pose, storage_path, thumbnail_path, created_at')
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
-        .limit(4),
-      supabase
-        .from('profiles')
-        .select('target_weight_kg')
-        .eq('id', userId)
-        .single(),
+      loadProfile(userId),
     ])
 
   const weeklyLifts = (weeklyLiftsResult.data ?? []) as WeeklyLift[]
   const bodyMetrics = (bodyMetricsResult.data ?? []) as BodyMetrics[]
-  const photos = (progressPhotosResult.data ?? []) as ProgressPhoto[]
 
   const liftEntries: LiftEntry[] = weeklyLifts.map((l) => ({
     exercise: l.exercise,
@@ -80,24 +147,9 @@ export default async function WorkoutPage() {
     weight: b.weight_kg != null ? Number(b.weight_kg) : null,
   }))
   const targetWeight =
-    profileResult.data?.target_weight_kg != null
-      ? Number(profileResult.data.target_weight_kg)
+    profile.target_weight_kg != null
+      ? Number(profile.target_weight_kg)
       : null
-  const hasPhotoThisWeek = photos.some((p) => p.date >= thisMonday)
-
-  const recentPhotos = await Promise.all(
-    photos.map(async (p) => {
-      const path = p.thumbnail_path ?? p.storage_path
-      try {
-        const { data } = await supabase.storage
-          .from(PROGRESS_PHOTO_BUCKET)
-          .createSignedUrl(path, 60 * 60)
-        return { id: p.id, date: p.date, signed_url: data?.signedUrl ?? null }
-      } catch {
-        return { id: p.id, date: p.date, signed_url: null }
-      }
-    }),
-  )
 
   return (
     <div className="w-full px-4 py-8 pb-24">
@@ -119,13 +171,15 @@ export default async function WorkoutPage() {
       />
 
       <div className="mt-4 gap-4 [column-fill:_balance] columns-1 md:columns-2">
-        <WeeklyCheckCard
-          today={today}
-          hasWeighInThisWeek={hasWeighInThisWeek}
-          recentWeights={recentWeights}
-          hasPhotoThisWeek={hasPhotoThisWeek}
-          recentPhotos={recentPhotos}
-        />
+        <Suspense fallback={<WeeklyCheckSkeleton />}>
+          <WeeklyCheckSection
+            photosPromise={photosPromise}
+            today={today}
+            thisMonday={thisMonday}
+            hasWeighInThisWeek={hasWeighInThisWeek}
+            recentWeights={recentWeights}
+          />
+        </Suspense>
         <WeightTrendCard
           series={recentWeights}
           today={today}

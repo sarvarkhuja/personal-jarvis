@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
 import { requireUserId } from '@/lib/auth/server-user';
 import {
@@ -44,7 +44,7 @@ export async function upsertWeeklyLift(input: UpsertWeeklyLiftInput) {
     .single();
 
   if (error) failed('upsertWeeklyLift', error);
-  revalidatePath('/workout');
+  invalidateUserData(userId, 'weekly_lifts');
   return data;
 }
 
@@ -59,5 +59,5 @@ export async function deleteWeeklyLift(input: DeleteWeeklyLiftInput) {
     .eq('user_id', userId);
 
   if (error) failed('deleteWeeklyLift', error);
-  revalidatePath('/workout');
+  invalidateUserData(userId, 'weekly_lifts');
 }

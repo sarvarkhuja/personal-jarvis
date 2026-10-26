@@ -1,10 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
+import { createReadClient } from '@/lib/supabase/read'
 import { requireUserId } from '@/lib/auth/server-user'
 import { ExpensesView } from '@/components/expenses/ExpensesView'
 
 export default async function ExpensesPage() {
   const userId = await requireUserId()
-  const supabase = await createClient()
+  const supabase = await createReadClient(userId)
 
   const sixMonthsAgo = new Date()
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)

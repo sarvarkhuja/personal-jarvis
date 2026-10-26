@@ -1,7 +1,8 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
+import { tryGetUserId } from '@/lib/auth/server-user';
 import { toUserDate } from '@/lib/domain/timezone';
 import {
   ArchiveHabitSchema,
@@ -20,10 +21,10 @@ import {
 } from '@/lib/schemas/habits';
 
 async function authedClient() {
+  const userId = await tryGetUserId();
+  if (!userId) throw new Error('UNAUTHENTICATED');
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('UNAUTHENTICATED');
-  return { supabase, user };
+  return { supabase, userId };
 }
 
 async function getUserTimezone(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
@@ -37,7 +38,7 @@ async function getUserTimezone(supabase: Awaited<ReturnType<typeof createClient>
 
 export async function createHabit(input: CreateHabitInput) {
   const parsed = CreateHabitSchema.parse(input);
-  const { supabase, user } = await authedClient();
+  const { supabase, userId } = await authedClient();
 
   // RLS-scoped check that the goal belongs to the calling user.
   // FK alone won't catch cross-tenant references because Postgres FKs bypass RLS.
@@ -51,7 +52,7 @@ export async function createHabit(input: CreateHabitInput) {
   const { data, error } = await supabase
     .from('habits')
     .insert({
-      user_id: user.id,
+      user_id: userId,
       goal_id: parsed.goal_id,
       name: parsed.name,
       kind: parsed.kind,
@@ -71,15 +72,13 @@ export async function createHabit(input: CreateHabitInput) {
       `createHabit failed: ${error.message}${error.details ? ` (${error.details})` : ''}`,
     );
   }
-  revalidatePath('/habits');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'habits');
   return data;
 }
 
 export async function updateHabit(input: UpdateHabitInput) {
   const parsed = UpdateHabitSchema.parse(input);
-  const { supabase, user } = await authedClient();
+  const { supabase, userId } = await authedClient();
 
   const patch: Record<string, unknown> = {};
   if (parsed.name !== undefined) patch.name = parsed.name;
@@ -95,7 +94,7 @@ export async function updateHabit(input: UpdateHabitInput) {
         .from('habits')
         .select('kind')
         .eq('id', parsed.id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
       effectiveKind = (current as { kind?: HabitKind } | null)?.kind;
     }
@@ -107,26 +106,24 @@ export async function updateHabit(input: UpdateHabitInput) {
     .from('habits')
     .update(patch)
     .eq('id', parsed.id)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .select()
     .single();
 
   if (error) throw error;
-  revalidatePath('/habits');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'habits');
   return data;
 }
 
 export async function deleteHabit(input: DeleteHabitInput) {
   const parsed = DeleteHabitSchema.parse(input);
-  const { supabase, user } = await authedClient();
+  const { supabase, userId } = await authedClient();
 
   const { error } = await supabase
     .from('habits')
     .delete()
     .eq('id', parsed.id)
-    .eq('user_id', user.id);
+    .eq('user_id', userId);
 
   if (error) {
     console.error('[deleteHabit] supabase delete failed:', error);
@@ -134,14 +131,13 @@ export async function deleteHabit(input: DeleteHabitInput) {
       `deleteHabit failed: ${error.message}${error.details ? ` (${error.details})` : ''}`,
     );
   }
-  revalidatePath('/habits');
-  revalidatePath('/today');
-  revalidatePath('/');
+  // Deletion cascades to logs and clears linked goal/session references.
+  invalidateUserData(userId, 'habits', 'habit_logs', 'goals', 'focus_sessions');
 }
 
 export async function archiveHabit(input: ArchiveHabitInput) {
   const parsed = ArchiveHabitSchema.parse(input);
-  const { supabase, user } = await authedClient();
+  const { supabase, userId } = await authedClient();
 
   const { error } = await supabase
     .from('habits')
@@ -150,44 +146,41 @@ export async function archiveHabit(input: ArchiveHabitInput) {
       is_active: !parsed.archive,
     })
     .eq('id', parsed.id)
-    .eq('user_id', user.id);
+    .eq('user_id', userId);
 
   if (error) throw error;
-  revalidatePath('/habits');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'habits');
 }
 
 export async function logHabit(input: LogHabitInput) {
   const parsed = LogHabitSchema.parse(input);
-  const { supabase, user } = await authedClient();
-
-  const tz = await getUserTimezone(supabase, user.id);
-  const loggedAtIso = parsed.logged_at ?? new Date().toISOString();
-  const log_date = toUserDate(loggedAtIso, tz);
+  const { supabase, userId } = await authedClient();
 
   // `check` habits are binary per day, so an accidental double-tap must not
   // insert a duplicate row. `counter` (+1) and `timer` (one row per focus
   // session) legitimately log multiple times a day — only short-circuit check.
-  const { data: habit } = await supabase
-    .from('habits')
-    .select('kind')
-    .eq('id', parsed.habit_id)
-    .eq('user_id', user.id)
-    .single();
+  const [tz, { data: habit }] = await Promise.all([
+    getUserTimezone(supabase, userId),
+    supabase
+      .from('habits')
+      .select('kind')
+      .eq('id', parsed.habit_id)
+      .eq('user_id', userId)
+      .single(),
+  ]);
+  const loggedAtIso = parsed.logged_at ?? new Date().toISOString();
+  const log_date = toUserDate(loggedAtIso, tz);
   if ((habit as { kind?: string } | null)?.kind === 'check') {
     const { data: existing } = await supabase
       .from('habit_logs')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('habit_id', parsed.habit_id)
       .eq('log_date', log_date)
       .limit(1)
       .maybeSingle();
     if (existing) {
-      revalidatePath('/habits');
-      revalidatePath('/today');
-      revalidatePath('/');
+      invalidateUserData(userId, 'habit_logs');
       return existing;
     }
   }
@@ -195,7 +188,7 @@ export async function logHabit(input: LogHabitInput) {
   const { data, error } = await supabase
     .from('habit_logs')
     .insert({
-      user_id: user.id,
+      user_id: userId,
       habit_id: parsed.habit_id,
       logged_at: loggedAtIso,
       log_date,
@@ -206,24 +199,20 @@ export async function logHabit(input: LogHabitInput) {
     .single();
 
   if (error) throw error;
-  revalidatePath('/habits');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'habit_logs');
   return data;
 }
 
 export async function unlogHabit(input: UnlogHabitInput) {
   const parsed = UnlogHabitSchema.parse(input);
-  const { supabase, user } = await authedClient();
+  const { supabase, userId } = await authedClient();
 
   const { error } = await supabase
     .from('habit_logs')
     .delete()
     .eq('id', parsed.log_id)
-    .eq('user_id', user.id);
+    .eq('user_id', userId);
 
   if (error) throw error;
-  revalidatePath('/habits');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'habit_logs');
 }

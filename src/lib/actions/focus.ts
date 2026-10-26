@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
 import { requireUserId } from '@/lib/auth/server-user';
 import { toUserDate } from '@/lib/domain/timezone';
@@ -41,9 +41,7 @@ export async function startFocusSession(input: StartFocusSessionInput) {
     .single();
 
   if (error) failed('startFocusSession', error);
-  revalidatePath('/focus');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'focus_sessions');
   return data;
 }
 
@@ -72,37 +70,41 @@ export async function endFocusSession(input: EndFocusSessionInput) {
     .eq('user_id', userId);
   if (updErr) failed('endFocusSession', updErr);
 
-  // If completed and linked to a timer-kind habit, log a habit_log too.
-  if (parsed.completed && existing.linked_habit_id) {
-    const { data: habit } = await supabase
-      .from('habits')
-      .select('kind')
-      .eq('id', existing.linked_habit_id)
-      .eq('user_id', userId)
-      .single();
-    if ((habit as { kind?: string } | null)?.kind === 'timer') {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('timezone')
-        .eq('id', userId)
-        .single();
-      const tz =
-        (profile as { timezone?: string } | null)?.timezone ?? 'UTC';
-      const valueSeconds = existing.planned_minutes * 60;
-      await supabase.from('habit_logs').insert({
-        user_id: userId,
-        habit_id: existing.linked_habit_id,
-        logged_at: endedAt,
-        log_date: toUserDate(endedAt, tz),
-        value: valueSeconds,
-        note: 'auto: focus session',
-      });
+  try {
+    // Habit kind and timezone are independent; load both in the same wave.
+    if (parsed.completed && existing.linked_habit_id) {
+      const [{ data: habit }, { data: profile }] = await Promise.all([
+        supabase
+          .from('habits')
+          .select('kind')
+          .eq('id', existing.linked_habit_id)
+          .eq('user_id', userId)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('timezone')
+          .eq('id', userId)
+          .single(),
+      ]);
+      if ((habit as { kind?: string } | null)?.kind === 'timer') {
+        const tz =
+          (profile as { timezone?: string } | null)?.timezone ?? 'UTC';
+        const valueSeconds = existing.planned_minutes * 60;
+        const { error: logErr } = await supabase.from('habit_logs').insert({
+          user_id: userId,
+          habit_id: existing.linked_habit_id,
+          logged_at: endedAt,
+          log_date: toUserDate(endedAt, tz),
+          value: valueSeconds,
+          note: 'auto: focus session',
+        });
+        if (logErr) failed('endFocusSession habit log', logErr);
+      }
     }
+  } finally {
+    // The session update already committed, even if the follow-up log fails.
+    invalidateUserData(userId, 'focus_sessions', 'habit_logs');
   }
 
-  revalidatePath('/focus');
-  revalidatePath('/today');
-  revalidatePath('/');
-  revalidatePath('/habits');
   return { id: parsed.id, ended_at: endedAt, completed: parsed.completed };
 }

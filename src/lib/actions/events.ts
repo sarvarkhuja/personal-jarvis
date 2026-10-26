@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
 import { requireUserId } from '@/lib/auth/server-user';
 import {
@@ -44,9 +44,7 @@ export async function createEvent(input: CreateEventInput) {
     .single();
 
   if (error) failed('createEvent', error);
-  revalidatePath('/plans');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'events');
   return data;
 }
 
@@ -72,9 +70,7 @@ export async function updateEvent(input: UpdateEventInput) {
     .single();
 
   if (error) failed('updateEvent', error);
-  revalidatePath('/plans');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'events');
   return data;
 }
 
@@ -89,7 +85,5 @@ export async function deleteEvent(input: DeleteEventInput) {
     .eq('user_id', userId);
 
   if (error) failed('deleteEvent', error);
-  revalidatePath('/plans');
-  revalidatePath('/today');
-  revalidatePath('/');
+  invalidateUserData(userId, 'events');
 }

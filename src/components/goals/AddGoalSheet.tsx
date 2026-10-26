@@ -35,53 +35,22 @@ type FormValues = z.infer<typeof FormSchema>;
 
 type Option = { id: string; label: string };
 
+type GoalOptions = {
+  habitOptions: Option[];
+  goalOptions: Option[];
+  defaultParentId?: string;
+};
+
 export function AddGoalSheet({
   habitOptions,
   goalOptions,
   defaultParentId,
   triggerLabel = 'Add goal',
-}: {
-  habitOptions: Option[];
-  goalOptions: Option[];
-  defaultParentId?: string;
+}: GoalOptions & {
   triggerLabel?: string;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [submitting, setSubmitting] = React.useState(false);
-  const [serverError, setServerError] = React.useState<string | null>(null);
-
-  const { register, handleSubmit, control, reset, formState } =
-    useForm<FormValues>({
-      resolver: zodResolver(FormSchema as never),
-      defaultValues: {
-        title: '',
-        description: '',
-        target_date: '',
-        parent_goal_id: defaultParentId ?? '',
-        linked_habit_id: '',
-      },
-    });
-
-  async function onSubmit(values: FormValues) {
-    setServerError(null);
-    setSubmitting(true);
-    try {
-      const payload = CreateGoalSchema.parse({
-        title: values.title,
-        description: values.description || null,
-        target_date: values.target_date || null,
-        parent_goal_id: values.parent_goal_id || null,
-        linked_habit_id: values.linked_habit_id || null,
-      });
-      await createGoal(payload);
-      reset();
-      setOpen(false);
-    } catch (e) {
-      setServerError(e instanceof Error ? e.message : 'Failed to create goal');
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  const [draft, setDraft] = React.useState<FormValues | undefined>(undefined);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -113,120 +82,184 @@ export function AddGoalSheet({
               : 'Top-level goal you’re working toward.'}
           </SheetDescription>
         </SheetHeader>
-
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-col gap-4 px-4"
-        >
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="goal-title">Title</Label>
-            <Input
-              id="goal-title"
-              data-testid="goal-title"
-              placeholder="Read 12 books"
-              {...register('title')}
-            />
-            {formState.errors.title && (
-              <p className="text-xs text-destructive">
-                {formState.errors.title.message}
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="goal-description">Description</Label>
-            <Input
-              id="goal-description"
-              placeholder="Optional"
-              {...register('description')}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="goal-target-date">Target date</Label>
-            <Input
-              id="goal-target-date"
-              type="date"
-              {...register('target_date')}
-            />
-            {formState.errors.target_date && (
-              <p className="text-xs text-destructive">
-                {formState.errors.target_date.message}
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="goal-habit">Linked habit (optional)</Label>
-            <Controller
-              name="linked_habit_id"
-              control={control}
-              render={({ field }) => (
-                <select
-                  id="goal-habit"
-                  data-testid="goal-habit"
-                  className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
-                >
-                  <option value="">— none —</option>
-                  {habitOptions.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            />
-          </div>
-
-          {!defaultParentId && goalOptions.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="goal-parent">Parent goal (optional)</Label>
-              <Controller
-                name="parent_goal_id"
-                control={control}
-                render={({ field }) => (
-                  <select
-                    id="goal-parent"
-                    className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
-                  >
-                    <option value="">— none —</option>
-                    {goalOptions.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              />
-            </div>
-          )}
-
-          {defaultParentId && (
-            <input type="hidden" {...register('parent_goal_id')} />
-          )}
-
-          {serverError && (
-            <p className="text-xs text-destructive">{serverError}</p>
-          )}
-
-          <SheetFooter className="px-0">
-            <Button
-              type="submit"
-              disabled={submitting}
-              data-testid="goal-submit"
-            >
-              {submitting ? 'Saving…' : 'Save goal'}
-            </Button>
-            <SheetClose render={<Button type="button" variant="ghost" />}>
-              Cancel
-            </SheetClose>
-          </SheetFooter>
-        </form>
+        <GoalForm
+          habitOptions={habitOptions}
+          goalOptions={goalOptions}
+          defaultParentId={defaultParentId}
+          draft={draft}
+          onDraftChange={setDraft}
+          onSaved={() => setOpen(false)}
+        />
       </SheetContent>
     </Sheet>
+  );
+}
+
+// The Sheet portal mounts its children on open. Keeping useForm here avoids
+// initializing one controller for every closed goal/sub-goal sheet in the tree.
+function GoalForm({
+  habitOptions,
+  goalOptions,
+  defaultParentId,
+  draft,
+  onDraftChange,
+  onSaved,
+}: GoalOptions & {
+  draft: FormValues | undefined;
+  onDraftChange: (values: FormValues) => void;
+  onSaved: () => void;
+}) {
+  const [submitting, setSubmitting] = React.useState(false);
+  const [serverError, setServerError] = React.useState<string | null>(null);
+  const { register, handleSubmit, control, reset, getValues, formState } =
+    useForm<FormValues>({
+      resolver: zodResolver(FormSchema as never),
+      defaultValues: draft ?? {
+        title: '',
+        description: '',
+        target_date: '',
+        parent_goal_id: defaultParentId ?? '',
+        linked_habit_id: '',
+      },
+    });
+
+  // Retain the existing close/reopen draft behavior without keeping the
+  // controller mounted after the portal closes. Successful saves reset first.
+  React.useEffect(() => () => onDraftChange(getValues()), [getValues, onDraftChange]);
+
+  async function onSubmit(values: FormValues) {
+    setServerError(null);
+    setSubmitting(true);
+    try {
+      const payload = CreateGoalSchema.parse({
+        title: values.title,
+        description: values.description || null,
+        target_date: values.target_date || null,
+        parent_goal_id: values.parent_goal_id || null,
+        linked_habit_id: values.linked_habit_id || null,
+      });
+      await createGoal(payload);
+      reset();
+      onSaved();
+    } catch (e) {
+      setServerError(e instanceof Error ? e.message : 'Failed to create goal');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="flex flex-col gap-4 px-4"
+    >
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="goal-title">Title</Label>
+        <Input
+          id="goal-title"
+          data-testid="goal-title"
+          placeholder="Read 12 books"
+          {...register('title')}
+        />
+        {formState.errors.title && (
+          <p className="text-xs text-destructive">
+            {formState.errors.title.message}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="goal-description">Description</Label>
+        <Input
+          id="goal-description"
+          placeholder="Optional"
+          {...register('description')}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="goal-target-date">Target date</Label>
+        <Input
+          id="goal-target-date"
+          type="date"
+          {...register('target_date')}
+        />
+        {formState.errors.target_date && (
+          <p className="text-xs text-destructive">
+            {formState.errors.target_date.message}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="goal-habit">Linked habit (optional)</Label>
+        <Controller
+          name="linked_habit_id"
+          control={control}
+          render={({ field }) => (
+            <select
+              id="goal-habit"
+              data-testid="goal-habit"
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              value={field.value ?? ''}
+              onChange={field.onChange}
+            >
+              <option value="">— none —</option>
+              {habitOptions.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          )}
+        />
+      </div>
+
+      {!defaultParentId && goalOptions.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="goal-parent">Parent goal (optional)</Label>
+          <Controller
+            name="parent_goal_id"
+            control={control}
+            render={({ field }) => (
+              <select
+                id="goal-parent"
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                value={field.value ?? ''}
+                onChange={field.onChange}
+              >
+                <option value="">— none —</option>
+                {goalOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          />
+        </div>
+      )}
+
+      {defaultParentId && (
+        <input type="hidden" {...register('parent_goal_id')} />
+      )}
+
+      {serverError && (
+        <p className="text-xs text-destructive">{serverError}</p>
+      )}
+
+      <SheetFooter className="px-0">
+        <Button
+          type="submit"
+          disabled={submitting}
+          data-testid="goal-submit"
+        >
+          {submitting ? 'Saving…' : 'Save goal'}
+        </Button>
+        <SheetClose render={<Button type="button" variant="ghost" />}>
+          Cancel
+        </SheetClose>
+      </SheetFooter>
+    </form>
   );
 }

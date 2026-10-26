@@ -4,15 +4,11 @@ import { NextResponse, type NextRequest } from "next/server";
 const USER_ID_HEADER = "x-user-id";
 
 export async function proxy(request: NextRequest) {
-	const requestHeaders = new Headers(request.headers);
-	// Strip any forged value before we set our verified one
-	requestHeaders.delete(USER_ID_HEADER);
-
-	let pendingCookies: Array<{
+	const pendingCookies = new Map<string, {
 		name: string;
 		value: string;
 		options: CookieOptions;
-	}> = [];
+	}>();
 
 	const supabase = createServerClient(
 		process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,18 +19,22 @@ export async function proxy(request: NextRequest) {
 					return request.cookies.getAll();
 				},
 				setAll(cookiesToSet) {
-					cookiesToSet.forEach(({ name, value }) =>
-						request.cookies.set(name, value),
-					);
-					pendingCookies = cookiesToSet;
+					cookiesToSet.forEach((cookie) => {
+						request.cookies.set(cookie.name, cookie.value);
+						pendingCookies.set(cookie.name, cookie);
+					});
 				},
 			},
 		},
 	);
 
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
+	// Verifies the access token locally with cached public keys when possible.
+	// The SDK still validates legacy symmetric tokens through the Auth server
+	// and refreshes expiring sessions; never trust an unverified cookie user.
+	const { data, error } = await supabase.auth.getClaims();
+	const userId = !error && typeof data?.claims.sub === "string"
+		? data.claims.sub
+		: null;
 
 	const isAuthRoute =
 		request.nextUrl.pathname.startsWith("/login") ||
@@ -47,20 +47,24 @@ export async function proxy(request: NextRequest) {
 		return response;
 	};
 
-	if (!user && !isAuthRoute) {
+	if (!userId && !isAuthRoute) {
 		const url = request.nextUrl.clone();
 		url.pathname = "/login";
 		return applyCookies(NextResponse.redirect(url));
 	}
 
-	if (user && isAuthRoute) {
+	if (userId && isAuthRoute) {
 		const url = request.nextUrl.clone();
 		url.pathname = "/";
 		return applyCookies(NextResponse.redirect(url));
 	}
 
-	if (user) {
-		requestHeaders.set(USER_ID_HEADER, user.id);
+	// Clone after getClaims, which may refresh the request's Cookie header.
+	const requestHeaders = new Headers(request.headers);
+	// Strip any forged value before we set our verified one.
+	requestHeaders.delete(USER_ID_HEADER);
+	if (userId) {
+		requestHeaders.set(USER_ID_HEADER, userId);
 	}
 
 	return applyCookies(

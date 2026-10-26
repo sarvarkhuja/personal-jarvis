@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server';
+import { createReadClient } from '@/lib/supabase/read';
 import { requireUserId } from '@/lib/auth/server-user';
+import { loadProfile } from '@/lib/data/profile';
 import { toUserDate } from '@/lib/domain/timezone';
 import { monthAnchor, nextMonth } from '@/lib/domain/calendar';
 import { isHabitDueOn } from '@/lib/domain/schedule';
@@ -31,15 +32,23 @@ export default async function PlansPage({
   searchParams: Promise<{ m?: string }>;
 }) {
   const userId = await requireUserId();
-  const supabase = await createClient();
-  const sp = await searchParams;
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('timezone')
-    .eq('id', userId)
-    .single();
-  const tz = (profile as { timezone?: string } | null)?.timezone ?? 'UTC';
+  const supabase = await createReadClient(userId);
+  const listsPromise = Promise.all([
+    supabase
+      .from('goals')
+      .select('id, title')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .order('title', { ascending: true }),
+    supabase
+      .from('habits')
+      .select('id, name, color, frequency_json')
+      .eq('user_id', userId)
+      .is('archived_at', null)
+      .order('created_at', { ascending: true }),
+  ]);
+  const [profile, sp] = await Promise.all([loadProfile(userId), searchParams]);
+  const tz = profile.timezone ?? 'UTC';
 
   const today = toUserDate(new Date(), tz);
   const anchor = normalizeAnchor(sp.m, today);
@@ -54,8 +63,9 @@ export default async function PlansPage({
   const rangeStartDate = rangeStart.toISOString().slice(0, 10);
   const rangeEndDate = rangeEnd.toISOString().slice(0, 10);
 
-  const [eventsResult, goalsResult, habitsResult, habitLogsResult] =
+  const [[goalsResult, habitsResult], eventsResult, habitLogsResult] =
     await Promise.all([
+      listsPromise,
       supabase
         .from('events')
         .select('id, title, description, starts_at, ends_at, kind')
@@ -63,18 +73,6 @@ export default async function PlansPage({
         .gte('starts_at', rangeStart.toISOString())
         .lt('starts_at', rangeEnd.toISOString())
         .order('starts_at', { ascending: true }),
-      supabase
-        .from('goals')
-        .select('id, title')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .order('title', { ascending: true }),
-      supabase
-        .from('habits')
-        .select('id, name, color, frequency_json')
-        .eq('user_id', userId)
-        .is('archived_at', null)
-        .order('created_at', { ascending: true }),
       supabase
         .from('habit_logs')
         .select('habit_id, log_date')

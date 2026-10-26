@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server';
+import { createReadClient } from '@/lib/supabase/read';
 import { requireUserId } from '@/lib/auth/server-user';
+import { loadProfile } from '@/lib/data/profile';
 import { toUserDate } from '@/lib/domain/timezone';
 import { buildPillWeek, medicationGridRows } from '@/lib/domain/pill-grid';
 import { AddMedicationSheet } from '@/components/pills/AddMedicationSheet';
@@ -10,26 +11,25 @@ type LogRecord = { medication_id: string; log_date: string };
 
 export default async function PillsPage() {
   const userId = await requireUserId();
-  const supabase = await createClient();
+  const supabase = await createReadClient(userId);
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('timezone')
-    .eq('id', userId)
-    .single();
-  const tz = (profile as { timezone?: string } | null)?.timezone ?? 'UTC';
-
-  const today = toUserDate(new Date(), tz);
-  const week = buildPillWeek(today);
-  const weekStart = week[0].date;
-
-  const [{ data: medsRaw }, { data: logsRaw }] = await Promise.all([
+  const medicationsPromise = Promise.resolve(
     supabase
       .from('medications')
       .select('id, name')
       .eq('user_id', userId)
       .is('archived_at', null)
       .order('created_at', { ascending: true }),
+  );
+  const profile = await loadProfile(userId);
+  const tz = profile.timezone ?? 'UTC';
+
+  const today = toUserDate(new Date(), tz);
+  const week = buildPillWeek(today);
+  const weekStart = week[0].date;
+
+  const [{ data: medsRaw }, { data: logsRaw }] = await Promise.all([
+    medicationsPromise,
     supabase
       .from('medication_logs')
       .select('medication_id, log_date')

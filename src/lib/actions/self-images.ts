@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { revalidatePath } from 'next/cache';
+import { invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
 import { requireUserId } from '@/lib/auth/server-user';
 import { SelfImageItemSchema, SelfImageMonthsSchema, type SelfImageItemInput } from '@/lib/schemas/self-images';
@@ -24,7 +24,7 @@ export async function createSelfImageItem(input: SelfImageItemInput): Promise<Re
     console.error('[createSelfImageItem]', error);
     return { error: 'Could not add it. Try again.' };
   }
-  revalidatePath('/');
+  invalidateUserData(userId, 'self_image_items');
   return { success: true };
 }
 
@@ -39,7 +39,7 @@ export async function updateSelfImageItem(id: string, body: string): Promise<Res
     console.error('[updateSelfImageItem]', error);
     return { error: 'Could not save. Try again.' };
   }
-  revalidatePath('/');
+  invalidateUserData(userId, 'self_image_items');
   return { success: true };
 }
 
@@ -52,7 +52,7 @@ export async function deleteSelfImageItem(id: string): Promise<Result> {
     console.error('[deleteSelfImageItem]', error);
     return { error: 'Could not delete. Try again.' };
   }
-  revalidatePath('/');
+  invalidateUserData(userId, 'self_image_items');
   return { success: true };
 }
 
@@ -73,7 +73,7 @@ export async function loadSelfImageProtocol(months: number): Promise<Result> {
     console.error('[loadSelfImageProtocol]', error);
     return { error: 'Could not load the protocol. Try again.' };
   }
-  revalidatePath('/');
+  invalidateUserData(userId, 'self_image_items');
   return { success: true };
 }
 
@@ -90,6 +90,6 @@ export async function setFutureSelfStart(date: string): Promise<Result> {
     console.error('[setFutureSelfStart]', error);
     return { error: 'Could not save the start date. Try again.' };
   }
-  revalidatePath('/');
+  invalidateUserData(userId, 'profiles');
   return { success: true };
 }

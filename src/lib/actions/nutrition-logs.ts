@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
 import { requireUserId } from '@/lib/auth/server-user';
 import {
@@ -46,7 +46,7 @@ export async function upsertNutritionLog(input: UpsertNutritionLogInput) {
     .single();
 
   if (error) failed('upsertNutritionLog', error);
-  revalidatePath('/workout');
+  invalidateUserData(userId, 'nutrition_logs');
   return data;
 }
 
@@ -61,5 +61,5 @@ export async function deleteNutritionLog(input: DeleteNutritionLogInput) {
     .eq('user_id', userId);
 
   if (error) failed('deleteNutritionLog', error);
-  revalidatePath('/workout');
+  invalidateUserData(userId, 'nutrition_logs');
 }

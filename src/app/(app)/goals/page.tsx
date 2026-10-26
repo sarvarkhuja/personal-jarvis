@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createReadClient } from '@/lib/supabase/read';
 import { requireUserId } from '@/lib/auth/server-user';
 import { GoalsView, type GoalRecord } from '@/components/goals/GoalsView';
 
@@ -16,7 +16,7 @@ export default async function GoalsPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const userId = await requireUserId();
-  const supabase = await createClient();
+  const supabase = await createReadClient(userId);
   const sp = await searchParams;
   const filter =
     sp.status && KNOWN_STATUSES.has(sp.status) ? sp.status : 'active';

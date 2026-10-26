@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { invalidateAllUserData, invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUserId } from '@/lib/auth/server-user';
@@ -24,7 +24,7 @@ export async function setTheme(input: SetThemeInput) {
     .eq('id', userId);
 
   if (error) failed('setTheme', error);
-  revalidatePath('/');
+  invalidateUserData(userId, 'profiles');
 }
 
 /**
@@ -40,5 +40,15 @@ export async function deleteAccount() {
   if (error) {
     console.error('[deleteAccount] admin.deleteUser failed:', error);
     throw new Error(`deleteAccount failed: ${error.message}`);
+  }
+  try {
+    // An unexpired signed token can still verify after account deletion.
+    // Clear its local SSR cookies before the client navigates to /login.
+    const supabase = await createClient();
+    const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+    if (signOutError) failed('deleteAccount session cleanup', signOutError);
+  } finally {
+    // The user was deleted even if an unexpected session-cleanup error occurs.
+    invalidateAllUserData(userId);
   }
 }
