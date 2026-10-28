@@ -53,4 +53,24 @@ describe('LibraryFilters', () => {
     act(() => { vi.advanceTimersByTime(300); });
     expect(replace).toHaveBeenLastCalledWith('/roadmap/library?kind=gotcha');
   });
+
+  it('resyncs the input when params.q is cleared', () => {
+    search = 'q=abc';
+    const { rerender } = render(<LibraryFilters params={{ ...base, q: 'abc' }} topics={topics} />);
+    expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('abc');
+    search = '';
+    rerender(<LibraryFilters params={base} topics={topics} />);
+    expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('');
+  });
+
+  it('a pending debounce does not fire after CLEAR is clicked', () => {
+    vi.useFakeTimers();
+    render(<LibraryFilters params={base} topics={topics} />);
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zzz' } });
+    const clear = screen.getByRole('link', { name: 'CLEAR' });
+    clear.addEventListener('click', (e) => e.preventDefault());
+    fireEvent.click(clear);
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(replace).not.toHaveBeenCalled();
+  });
 });

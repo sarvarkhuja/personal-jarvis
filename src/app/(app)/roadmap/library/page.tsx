@@ -8,7 +8,7 @@ import { filterNotes, groupNotes, parseLibraryParams, sortNotes } from '@/lib/do
 import { LibraryFilters } from '@/components/roadmap/LibraryFilters';
 import { NoteCard } from '@/components/roadmap/NoteCard';
 import { RoadmapTabs } from '@/components/roadmap/RoadmapTabs';
-import { WidgetCard, WidgetCount, WidgetEmpty } from '@/components/today/WidgetCard';
+import { WidgetCard, WidgetEmpty } from '@/components/today/WidgetCard';
 
 const SEGMENT_TONES = ['bg-text-primary', 'bg-text-secondary', 'bg-text-disabled'] as const;
 
@@ -66,7 +66,7 @@ export default async function LibraryPage({ searchParams }: {
       ) : (
         <div className="columns-1 md:columns-2 2xl:columns-3 gap-4">
           {groups.map((g) => (
-            <WidgetCard key={g.key} title={`[ ${g.label} · ${g.notes.length} ]`} right={<WidgetCount>{g.notes.length}</WidgetCount>}>
+            <WidgetCard key={g.key} title={`[ ${g.label} · ${g.notes.length} ]`}>
               {g.notes.map((n) => <NoteCard key={n.id} note={n} tz={profile.timezone} known={known} />)}
             </WidgetCard>
           ))}
