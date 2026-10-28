@@ -90,4 +90,35 @@ describe('NoteComposer', () => {
     await user.click(screen.getByRole('button', { name: 'CANCEL' }));
     expect(onDone).toHaveBeenCalled();
   });
+
+  it('Enter in the topic input does not submit', async () => {
+    const user = userEvent.setup();
+    render(<NoteComposer week={6} known={known} />);
+    await user.type(screen.getByLabelText('Note'), 'Body');
+    await user.type(screen.getByLabelText('Topic'), 'abc{Enter}');
+    expect(createRoadmapNote).not.toHaveBeenCalled();
+  });
+
+  it('caps at 8 topics: Enter keeps the draft and submit sends exactly 8', async () => {
+    const user = userEvent.setup();
+    render(<NoteComposer week={6} known={known} initial={{ ...initial, topics: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] }} />);
+    expect(screen.getByLabelText('Topic')).toBeDisabled();
+    cleanup();
+    render(<NoteComposer week={6} known={known} />);
+    await user.type(screen.getByLabelText('Note'), 'Body');
+    for (const t of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) await user.type(screen.getByLabelText('Topic'), `${t}{Enter}`);
+    expect(screen.getByLabelText('Topic')).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'SAVE' }));
+    await waitFor(() => expect(createRoadmapNote).toHaveBeenCalled());
+    expect(vi.mocked(createRoadmapNote).mock.calls[0][0].topics).toHaveLength(8);
+  });
+
+  it('returns focus to the textarea after a save', async () => {
+    const user = userEvent.setup();
+    render(<NoteComposer week={6} known={known} />);
+    await user.type(screen.getByLabelText('Note'), 'Body');
+    await user.click(screen.getByRole('button', { name: 'SAVE' }));
+    await screen.findByText('[ SAVED ]');
+    await waitFor(() => expect(screen.getByLabelText('Note')).toHaveFocus());
+  });
 });

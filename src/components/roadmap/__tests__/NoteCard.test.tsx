@@ -62,4 +62,20 @@ describe('NoteCard', () => {
     await user.click(screen.getByRole('button', { name: 'EDIT' }));
     expect(screen.getByLabelText('Note')).toHaveValue('Channels block');
   });
+
+  it('No on delete confirm makes no call', async () => {
+    const user = userEvent.setup();
+    render(<NoteCard note={note} tz="UTC" />);
+    await user.click(screen.getByRole('button', { name: 'DELETE' }));
+    await user.click(screen.getByRole('button', { name: 'No' }));
+    expect(deleteRoadmapNote).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'DELETE' })).toBeInTheDocument();
+  });
+
+  it('re-rating to the same confidence makes no call', async () => {
+    const user = userEvent.setup();
+    render(<NoteCard note={note} tz="UTC" />);
+    await user.click(screen.getByRole('button', { name: 'Confidence 1' }));
+    expect(updateRoadmapNote).not.toHaveBeenCalled();
+  });
 });

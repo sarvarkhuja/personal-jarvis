@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, useTransition } from 'react';
+import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import { cn } from '@/lib/utils';
 import { createRoadmapNote, updateRoadmapNote } from '@/lib/actions/roadmap';
 import { NOTE_KINDS, TRACKS, normalizeTopic, suggestTopics, type NoteKind, type Track } from '@/lib/domain/roadmap';
@@ -34,9 +34,14 @@ export function NoteComposer({ week, known, initial, onDone }: {
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const full = topics.length >= 8;
+  useEffect(() => { if (saved && !pending) bodyRef.current?.focus(); }, [saved, pending]);
+
   const addTopic = (raw: string) => {
+    if (full) return;
     const slug = normalizeTopic(raw);
-    if (slug && !topics.includes(slug) && topics.length < 8) setTopics([...topics, slug]);
+    if (slug && !topics.includes(slug)) setTopics([...topics, slug]);
     setTopicDraft('');
   };
   const suggestions = suggestTopics(week).filter((s) => !topics.includes(s)).slice(0, 6);
@@ -44,7 +49,7 @@ export function NoteComposer({ week, known, initial, onDone }: {
   const submit = () => {
     if (pending || !body.trim()) return;
     const slug = normalizeTopic(topicDraft);
-    const finalTopics = slug && !topics.includes(slug) ? [...topics, slug] : topics;
+    const finalTopics = slug && !topics.includes(slug) && topics.length < 8 ? [...topics, slug] : topics;
     setError('');
     setSaved(false);
     startTransition(async () => {
@@ -80,6 +85,7 @@ export function NoteComposer({ week, known, initial, onDone }: {
       </div>
 
       <textarea
+        ref={bodyRef}
         aria-label="Note"
         rows={4}
         maxLength={4000}
@@ -111,7 +117,7 @@ export function NoteComposer({ week, known, initial, onDone }: {
           aria-label="Topic"
           list={listId}
           value={topicDraft}
-          disabled={pending}
+          disabled={pending || full}
           placeholder="Add topic"
           className="min-h-6 min-w-24 flex-1 bg-transparent font-mono text-[11px] text-text-primary outline-none placeholder:text-text-disabled"
           onChange={(event) => setTopicDraft(event.target.value)}
@@ -127,7 +133,7 @@ export function NoteComposer({ week, known, initial, onDone }: {
       {suggestions.length > 0 && (
         <div className="flex flex-wrap items-center gap-1" aria-label="Suggested topics" role="group">
           {suggestions.map((s) => (
-            <button key={s} type="button" onClick={() => addTopic(s)} className={cn(btn, 'text-text-disabled hover:text-text-primary')}>
+            <button key={s} type="button" disabled={full} onClick={() => addTopic(s)} className={cn(btn, 'text-text-disabled hover:text-text-primary')}>
               + {s}
             </button>
           ))}

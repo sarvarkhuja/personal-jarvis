@@ -61,7 +61,7 @@ export default async function RoadmapPage({ searchParams }: { searchParams: Prom
         <WidgetCard title={`[ NOTES · WEEK ${selected} · ${weekNotes.length} ]`} right={<WidgetCount>{weekNotes.length}</WidgetCount>}>
           {weekNotes.length === 0
             ? <WidgetEmpty>No notes this week.</WidgetEmpty>
-            : weekNotes.map((n) => <NoteCard key={n.id} note={n} tz={profile.timezone} />)}
+            : weekNotes.map((n) => <NoteCard key={n.id} note={n} tz={profile.timezone} known={known} />)}
         </WidgetCard>
       </div>
     </main>
