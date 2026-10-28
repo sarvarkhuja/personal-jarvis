@@ -58,7 +58,7 @@ export function RoadmapHero({ statuses, selectedWeek, current, pace, dots, sente
       </div>
 
       <div>
-        <div className="grid grid-cols-[repeat(14,minmax(0,1fr))] gap-1 md:grid-cols-[repeat(28,minmax(0,1fr))]">
+        <div className="grid grid-cols-7 gap-1 sm:grid-cols-14 xl:grid-cols-28">
           {WEEKS.map((w) => {
             const t = weekTally(statuses, w);
             const resolved = t.done + t.skipped;
@@ -75,7 +75,7 @@ export function RoadmapHero({ statuses, selectedWeek, current, pace, dots, sente
                 onFocus={() => setHovered(w)}
                 onBlur={() => setHovered(null)}
                 className={cn(
-                  'relative flex min-h-6 items-end overflow-hidden rounded-sm border',
+                  'relative flex min-h-6 min-w-6 items-end overflow-hidden rounded-sm border',
                   first ? 'border-accent bg-accent' : 'border-border-visible bg-background',
                   selected && 'outline outline-2 outline-offset-1 outline-text-primary',
                 )}
@@ -87,7 +87,7 @@ export function RoadmapHero({ statuses, selectedWeek, current, pace, dots, sente
             );
           })}
         </div>
-        <div aria-hidden className={cn(mono, 'mt-2 grid grid-cols-7 text-[10px] text-text-disabled')}>
+        <div aria-hidden className={cn(mono, 'mt-2 hidden grid-cols-7 text-[10px] text-text-disabled xl:grid')}>
           {MONTHS.map((m) => <span key={m}>M{m}</span>)}
         </div>
         <p aria-live="polite" className={cn(mono, 'mt-3 min-h-4 text-text-secondary')}>{annotation}</p>

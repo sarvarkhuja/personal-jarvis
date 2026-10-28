@@ -76,7 +76,7 @@ export function WeekItems({ week, statuses, capstone }: { week: RoadmapWeek; sta
           );
         })}
       </ul>
-      {error && <p role="status" className={cn(mono, 'mt-3 text-text-primary')}>{error}</p>}
+      {error && <p role="alert" className={cn(mono, 'mt-3 text-text-primary')}>{error}</p>}
       {capstone && (
         <p className="mt-4 border-t border-border pt-4 text-sm leading-relaxed text-text-secondary">
           <span className={cn(mono, 'mr-2 text-text-primary')}>CAPSTONE {capstone.n}</span>

@@ -48,7 +48,7 @@ export default async function RoadmapPage({ searchParams }: { searchParams: Prom
 
       <RoadmapHero statuses={statuses} selectedWeek={selected} current={current} pace={pace} dots={dots} sentence={sentence} />
 
-      <div className="gap-4 md:columns-2 2xl:columns-3">
+      <div className="columns-1 md:columns-2 2xl:columns-3 gap-4">
         <WidgetCard title={`[ WEEK ${selected} · ITEMS ]`}>
           <WeekItems week={week} statuses={statuses} capstone={capstone} />
         </WidgetCard>
