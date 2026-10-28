@@ -73,4 +73,17 @@ describe('LibraryFilters', () => {
     act(() => { vi.advanceTimersByTime(500); });
     expect(replace).not.toHaveBeenCalled();
   });
+
+  it('does not clobber typing when our own search URL lands', () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<LibraryFilters params={base} topics={topics} />);
+    const input = screen.getByRole('searchbox') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'abc' } });
+    act(() => { vi.advanceTimersByTime(300); });
+    expect(replace).toHaveBeenCalledWith('/roadmap/library?q=abc');
+    fireEvent.change(input, { target: { value: 'abcd' } });
+    search = 'q=abc';
+    rerender(<LibraryFilters params={{ ...base, q: 'abc' }} topics={topics} />);
+    expect(input.value).toBe('abcd');
+  });
 });

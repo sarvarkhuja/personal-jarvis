@@ -48,15 +48,18 @@ export function LibraryFilters({ params, topics }: {
   const sp = useSearchParams();
   const [q, setQ] = useState(params.q ?? '');
   const [prevQ, setPrevQ] = useState(params.q);
+  const [sent, setSent] = useState(params.q); // q our own debounce last pushed
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const spRef = useRef(sp);
   useEffect(() => { spRef.current = sp; });
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  // Resync the input when the URL's q changes (CLEAR, back/forward).
+  // Resync the input on external URL changes (CLEAR, back/forward, chip links),
+  // but not when our own debounced navigation lands.
   if (params.q !== prevQ) {
     setPrevQ(params.q);
-    if (params.q !== (q.trim() || undefined)) setQ(params.q ?? '');
+    if (params.q !== sent) setQ(params.q ?? '');
+    setSent(params.q);
   }
 
   const cancelSearch = () => clearTimeout(timer.current);
@@ -75,6 +78,7 @@ export function LibraryFilters({ params, topics }: {
     timer.current = setTimeout(() => {
       const next = new URLSearchParams(spRef.current.toString());
       const trimmed = value.trim();
+      setSent(trimmed || undefined);
       if (trimmed) next.set('q', trimmed);
       else next.delete('q');
       router.replace(build(next));
