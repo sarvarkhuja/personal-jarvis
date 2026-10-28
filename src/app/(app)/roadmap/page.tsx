@@ -3,10 +3,12 @@ import { requireUserId } from '@/lib/auth/server-user';
 import { loadProfile } from '@/lib/data/profile';
 import { loadNotes, loadStatuses } from '@/lib/data/roadmap';
 import { toUserDate } from '@/lib/domain/timezone';
-import { activityDots, currentWeek, paceSummary, weekTally } from '@/lib/domain/roadmap';
+import { activityDots, currentWeek, knownTopics, paceSummary, weekTally } from '@/lib/domain/roadmap';
 import { CAPSTONES, ROADMAP_WEEKS } from '@/lib/domain/roadmap-data';
 import { RoadmapHero } from '@/components/roadmap/RoadmapHero';
 import { RoadmapTabs } from '@/components/roadmap/RoadmapTabs';
+import { NoteCard } from '@/components/roadmap/NoteCard';
+import { NoteComposer } from '@/components/roadmap/NoteComposer';
 import { WeekItems } from '@/components/roadmap/WeekItems';
 import { WidgetCard, WidgetCount, WidgetEmpty } from '@/components/today/WidgetCard';
 
@@ -29,6 +31,7 @@ export default async function RoadmapPage({ searchParams }: { searchParams: Prom
   const capstone = week.capstone === null ? null : (CAPSTONES.find((c) => c.n === week.capstone) ?? null);
   const weekNotes = notes.filter((n) => n.week === selected);
 
+  const known = knownTopics(notes);
   const pace = paceSummary(statuses, today, profile.timezone);
   const dots = activityDots(
     [...statuses.map((s) => s.updated_at), ...notes.map((n) => n.created_at)],
@@ -53,10 +56,12 @@ export default async function RoadmapPage({ searchParams }: { searchParams: Prom
           <WeekItems week={week} statuses={statuses} capstone={capstone} />
         </WidgetCard>
         <WidgetCard title="[ CAPTURE ]">
-          <WidgetEmpty>Capture arrives soon.</WidgetEmpty>
+          <NoteComposer week={selected} known={known} />
         </WidgetCard>
         <WidgetCard title={`[ NOTES · WEEK ${selected} · ${weekNotes.length} ]`} right={<WidgetCount>{weekNotes.length}</WidgetCount>}>
-          <WidgetEmpty>{weekNotes.length === 0 ? 'No notes this week.' : `${weekNotes.length} notes.`}</WidgetEmpty>
+          {weekNotes.length === 0
+            ? <WidgetEmpty>No notes this week.</WidgetEmpty>
+            : weekNotes.map((n) => <NoteCard key={n.id} note={n} tz={profile.timezone} />)}
         </WidgetCard>
       </div>
     </main>
