@@ -13,6 +13,8 @@ const TABLES = [
   'focus_sessions',
   'salah_logs',
   'salah_settings',
+  'roadmap_item_status',
+  'roadmap_notes',
 ] as const;
 
 export async function GET() {
