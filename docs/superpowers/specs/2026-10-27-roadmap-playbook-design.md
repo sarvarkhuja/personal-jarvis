@@ -258,7 +258,7 @@ Add both to `USER_DATA_TABLES` (`src/lib/data/cache-tags.ts`) and to `TABLES` in
   - **Morning** (at or after `morning_nudge`): "W6 · 3/5 left · 14 cards due" + [Review now] [Open Jarvis]. In re-entry mode it switches to the welcome-back variant (warm-up + last note recap).
   - **Evening** (at or after `evening_nudge`): only if nothing was reviewed or ticked and no note was written today. "5 minutes? 10 cards waiting."
   - Paused or disabled means no nudges.
-- `src/app/api/cron/learn-nudges/route.ts` (POST):
+- `src/app/api/cron/roadmap-nudges/route.ts` (POST):
   - Requires bearer `CRON_SECRET`, compared timing-safe.
   - Loops over linked users and computes local time from `profiles.timezone`.
   - **Before sending**, inserts `roadmap_nudges` with `on conflict do nothing returning`. That makes sending at-most-once per kind per day.
