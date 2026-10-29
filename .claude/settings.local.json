@@ -14,5 +14,8 @@
       "Bash(npx vitest:*)",
       "Bash(ls:*)"
     ]
+  },
+  "enabledPlugins": {
+    "telegram@claude-plugins-official": true
   }
 }
