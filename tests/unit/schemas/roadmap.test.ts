@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CreateRoadmapNoteSchema, ItemStatusInputSchema, UpdateRoadmapNoteSchema } from '@/lib/schemas/roadmap';
+import { CreateRoadmapNoteSchema, ProgressInputSchema, UpdateRoadmapNoteSchema } from '@/lib/schemas/roadmap';
 
 const base = { week: 3, kind: 'learning' as const, body: 'Channels block', topics: [] as string[] };
 
@@ -38,11 +38,12 @@ describe('UpdateRoadmapNoteSchema', () => {
   });
 });
 
-describe('ItemStatusInputSchema', () => {
-  it('accepts null status', () => {
-    expect(ItemStatusInputSchema.safeParse({ week: 1, track: 'go', status: null }).success).toBe(true);
+describe('ProgressInputSchema', () => {
+  it('accepts a key with a boolean', () => {
+    expect(ProgressInputSchema.safeParse({ key: 'ex:w01-go', done: true }).success).toBe(true);
   });
-  it('rejects an unknown track', () => {
-    expect(ItemStatusInputSchema.safeParse({ week: 1, track: 'x', status: 'done' }).success).toBe(false);
+  it('rejects a missing flag or an empty key', () => {
+    expect(ProgressInputSchema.safeParse({ key: 'ex:w01-go' }).success).toBe(false);
+    expect(ProgressInputSchema.safeParse({ key: '', done: true }).success).toBe(false);
   });
 });

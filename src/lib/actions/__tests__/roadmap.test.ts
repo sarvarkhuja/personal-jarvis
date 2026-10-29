@@ -1,7 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createRoadmapNote, deleteRoadmapNote, setItemStatus, updateRoadmapNote } from '../roadmap';
-import { itemHash, itemText } from '@/lib/domain/roadmap';
+import { createRoadmapNote, deleteRoadmapNote, setProgress, updateRoadmapNote } from '../roadmap';
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
@@ -12,6 +11,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/supabase/action', () => ({ createClient: mocks.createClient }));
 vi.mock('@/lib/auth/server-user', () => ({ requireUserId: mocks.requireUserId }));
+vi.mock('server-only', () => ({}));
 vi.mock('@/lib/data/invalidate', () => ({ invalidateUserData: mocks.invalidateUserData }));
 
 type Result = { data: unknown; error: { message: string } | null };
@@ -40,34 +40,31 @@ describe('roadmap actions', () => {
     mocks.createClient.mockResolvedValue({ from: mocks.from });
   });
 
-  it('setItemStatus upserts with a server-computed hash and invalidates', async () => {
+  it('setProgress upserts a known key and invalidates', async () => {
     const q = query(ok());
     mocks.from.mockReturnValue(q);
-    expect(await setItemStatus(3, 'go', 'done')).toEqual({ success: true });
-    expect(mocks.from).toHaveBeenCalledWith('roadmap_item_status');
+    expect(await setProgress('ex:w01-go', true)).toEqual({ success: true });
+    expect(mocks.from).toHaveBeenCalledWith('roadmap_progress');
     expect(q.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user_id: userId, week: 3, track: 'go', status: 'done',
-        item_hash: itemHash(itemText(3, 'go')),
-      }),
-      { onConflict: 'user_id,week,track' },
+      { user_id: userId, key: 'ex:w01-go' },
+      { onConflict: 'user_id,key', ignoreDuplicates: true },
     );
-    expect(mocks.invalidateUserData).toHaveBeenCalledWith(userId, 'roadmap_item_status');
+    expect(mocks.invalidateUserData).toHaveBeenCalledWith(userId, 'roadmap_progress');
   });
 
-  it('setItemStatus with null deletes scoped to the user', async () => {
+  it('setProgress with done=false deletes scoped to the user', async () => {
     const q = query(ok());
     mocks.from.mockReturnValue(q);
-    expect(await setItemStatus(3, 'go', null)).toEqual({ success: true });
+    expect(await setProgress('build:3', false)).toEqual({ success: true });
     expect(q.delete).toHaveBeenCalled();
     expect(q.eq).toHaveBeenCalledWith('user_id', userId);
-    expect(q.eq).toHaveBeenCalledWith('week', 3);
-    expect(q.eq).toHaveBeenCalledWith('track', 'go');
-    expect(mocks.invalidateUserData).toHaveBeenCalledWith(userId, 'roadmap_item_status');
+    expect(q.eq).toHaveBeenCalledWith('key', 'build:3');
+    expect(mocks.invalidateUserData).toHaveBeenCalledWith(userId, 'roadmap_progress');
   });
 
-  it('setItemStatus rejects invalid input without touching the DB', async () => {
-    expect('error' in (await setItemStatus(29, 'go', 'done'))).toBe(true);
+  it('setProgress rejects keys outside the curriculum without touching the DB', async () => {
+    expect('error' in (await setProgress('ex:nope', true))).toBe(true);
+    expect('error' in (await setProgress('build:29', true))).toBe(true);
     expect(mocks.from).not.toHaveBeenCalled();
   });
 

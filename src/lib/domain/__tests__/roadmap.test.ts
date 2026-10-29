@@ -1,40 +1,31 @@
 import { describe, it, expect } from 'vitest';
 import {
-  TRACKS, DESIGN_ITEM_TEXT, itemHash, itemText, isRevised, currentWeek, paceSummary,
-  activityDots, normalizeTopic, suggestTopics, knownTopics, weekTally, overallTally, monthOfWeek,
-  type ItemStatus, type Track,
+  currentWeek, paceSummary, countDone, activityDots, normalizeTopic, suggestTopics, knownTopics, monthOfWeek,
+  type ProgressRow,
 } from '../roadmap';
 
-const st = (week: number, track: Track, status: 'done' | 'skipped' = 'done', updated_at = '2026-10-20T10:00:00Z'): ItemStatus =>
-  ({ week, track, status, updated_at, item_hash: itemHash(itemText(week, track)) });
+const row = (key: string, done_at = '2026-10-20T10:00:00Z'): ProgressRow => ({ key, done_at });
+const weeks = [['a1', 'a2'], ['b1', 'b2']];
 
 describe('roadmap domain', () => {
-  it('current week = first week with an unresolved item; skipped counts as resolved', () => {
-    const w1 = TRACKS.map((t) => st(1, t.key, t.key === 'ml' ? 'skipped' : 'done'));
-    expect(currentWeek([])).toBe(1);
-    expect(currentWeek(w1)).toBe(2);
+  it('current week is the first week with an unfinished checkpoint', () => {
+    expect(currentWeek(weeks, new Set())).toBe(1);
+    expect(currentWeek(weeks, new Set(['a1', 'a2', 'b1']))).toBe(2);
+    expect(currentWeek(weeks, new Set(['a1']))).toBe(1);
   });
-  it('returns null when all 140 are resolved', () => {
-    const all = Array.from({ length: 28 }, (_, i) => TRACKS.map((t) => st(i + 1, t.key))).flat();
-    expect(all).toHaveLength(140);
-    expect(currentWeek(all)).toBeNull();
-    expect(overallTally(all)).toEqual({ done: 140, skipped: 0, total: 140 });
+  it('returns null when everything is done', () => {
+    expect(currentWeek(weeks, new Set(['a1', 'a2', 'b1', 'b2']))).toBeNull();
   });
-  it('flags revised items when stored hash differs', () => {
-    expect(isRevised({ ...st(3, 'go'), item_hash: 'old' })).toBe(true);
-    expect(isRevised(st(3, 'go'))).toBe(false);
-  });
-  it('design item text is identical every week', () => { expect(itemText(7, 'design')).toBe(DESIGN_ITEM_TEXT); });
-  it('tallies a week and maps months', () => {
-    expect(weekTally([st(2, 'go'), st(2, 'ai', 'skipped')], 2)).toEqual({ done: 1, skipped: 1, open: 3 });
+  it('counts done keys and maps months', () => {
+    expect(countDone(['a1', 'a2', 'x'], new Set(['a1', 'x']))).toBe(2);
     expect(monthOfWeek(5)).toBe(2);
   });
-  it('pace defaults to 5/week with no history and projects finish from today', () => {
-    expect(paceSummary([], '2026-10-28', 'Asia/Tashkent')).toEqual({ perWeek: 5, remaining: 140, finishMonth: '2027-05' });
+  it('pace defaults to the planned load with no history and projects finish from today', () => {
+    expect(paceSummary([], 672, '2026-10-28', 'Asia/Tashkent')).toEqual({ perWeek: 24, remaining: 672, finishMonth: '2027-05' });
   });
-  it('pace uses resolved items in the last 28 local days', () => {
-    const s = Array.from({ length: 8 }, (_, i) => st(1 + Math.floor(i / 5), TRACKS[i % 5].key, 'done', '2026-10-15T10:00:00Z'));
-    expect(paceSummary(s, '2026-10-28', 'Asia/Tashkent').perWeek).toBe(2);
+  it('pace uses checkpoints done in the last 28 local days', () => {
+    const rows = Array.from({ length: 8 }, (_, i) => row(`k${i}`, '2026-10-15T10:00:00Z'));
+    expect(paceSummary(rows, 672, '2026-10-28', 'Asia/Tashkent').perWeek).toBe(2);
   });
   it('activity dots mark local days with any timestamp, oldest first', () => {
     const dots = activityDots(['2026-10-27T20:30:00Z'], '2026-10-28', 'Asia/Tashkent');

@@ -1,17 +1,14 @@
-import { ROADMAP_WEEKS } from './roadmap-data';
 import { ROADMAP_TOPICS } from './roadmap-topics';
 import { toUserDate } from './timezone';
 import { addDaysISO } from './habit-consistency';
 
-export type Track = 'design' | 'go' | 'ai' | 'ml' | 'evidence';
+export type Track = 'go' | 'ai' | 'ml';
 export type NoteKind = 'learning' | 'question' | 'gotcha' | 'decision' | 'resource' | 'story';
 
 export const TRACKS: readonly { key: Track; label: string }[] = [
-  { key: 'design', label: 'DESIGN' },
-  { key: 'go', label: 'GO' },
+  { key: 'go', label: 'GO / SYSTEMS' },
   { key: 'ai', label: 'AI PLATFORM' },
   { key: 'ml', label: 'ML RUNTIME' },
-  { key: 'evidence', label: 'EVIDENCE' },
 ];
 
 export const NOTE_KINDS: readonly { key: NoteKind; label: string }[] = [
@@ -23,98 +20,42 @@ export const NOTE_KINDS: readonly { key: NoteKind; label: string }[] = [
   { key: 'story', label: 'STORY' },
 ];
 
-export const DESIGN_ITEM_TEXT = "Write this week's DESIGN.md / ADR before building";
-
-const TOTAL_ITEMS = 140;
-const WEEKS = 28;
-
 export function monthOfWeek(week: number): number {
   return Math.ceil(week / 4);
 }
 
-export function itemText(week: number, track: Track): string {
-  if (track === 'design') return DESIGN_ITEM_TEXT;
-  const row = ROADMAP_WEEKS.find((w) => w.week === week);
-  return row ? row[track] : '';
+export type ProgressRow = { key: string; done_at: string };
+
+export function countDone(keys: readonly string[], done: ReadonlySet<string>): number {
+  let n = 0;
+  for (const k of keys) if (done.has(k)) n++;
+  return n;
 }
 
-/** FNV-1a 32-bit, base36. Short, stable, non-crypto. */
-export function itemHash(text: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 0x01000193) >>> 0;
-  }
-  return h.toString(36);
-}
-
-export type ItemStatus = {
-  week: number;
-  track: Track;
-  status: 'done' | 'skipped';
-  item_hash: string;
-  updated_at: string;
-};
-
-export function isRevised(s: ItemStatus): boolean {
-  return itemHash(itemText(s.week, s.track)) !== s.item_hash;
-}
-
-/** First week with an unresolved item; null when all 140 are resolved. */
-export function currentWeek(statuses: ItemStatus[]): number | null {
-  const resolved = new Map<number, Set<Track>>();
-  for (const s of statuses) {
-    if (!resolved.has(s.week)) resolved.set(s.week, new Set());
-    resolved.get(s.week)!.add(s.track);
-  }
-  for (let w = 1; w <= WEEKS; w++) {
-    if ((resolved.get(w)?.size ?? 0) < TRACKS.length) return w;
+/** First week with an unfinished checkpoint; null when all are done. */
+export function currentWeek(weekKeys: readonly (readonly string[])[], done: ReadonlySet<string>): number | null {
+  for (let i = 0; i < weekKeys.length; i++) {
+    if (countDone(weekKeys[i], done) < weekKeys[i].length) return i + 1;
   }
   return null;
 }
 
-export function weekTally(
-  statuses: ItemStatus[],
-  week: number,
-): { done: number; skipped: number; open: number } {
-  let done = 0;
-  let skipped = 0;
-  for (const s of statuses) {
-    if (s.week !== week) continue;
-    if (s.status === 'done') done++;
-    else skipped++;
-  }
-  return { done, skipped, open: Math.max(0, TRACKS.length - done - skipped) };
-}
-
-export function overallTally(statuses: ItemStatus[]): {
-  done: number;
-  skipped: number;
-  total: 140;
-} {
-  let done = 0;
-  let skipped = 0;
-  for (const s of statuses) {
-    if (s.status === 'done') done++;
-    else skipped++;
-  }
-  return { done, skipped, total: TOTAL_ITEMS };
-}
-
 export function paceSummary(
-  statuses: ItemStatus[],
+  rows: readonly ProgressRow[],
+  total: number,
   today: string,
   tz: string,
 ): { perWeek: number; remaining: number; finishMonth: string } {
   const start = addDaysISO(today, -27);
   let recent = 0;
-  for (const s of statuses) {
-    const d = toUserDate(s.updated_at, tz);
+  for (const r of rows) {
+    const d = toUserDate(r.done_at, tz);
     if (d >= start && d <= today) recent++;
   }
+  // Fall back to the planned load (24 checkpoints a week) until there is history.
   const rate = Math.round((recent / 4) * 10) / 10;
-  const perWeek = rate > 0 ? rate : 5;
-  const remaining = TOTAL_ITEMS - statuses.length;
+  const perWeek = rate > 0 ? rate : 24;
+  const remaining = Math.max(0, total - rows.length);
   const days = Math.ceil((remaining / perWeek) * 7);
   return { perWeek, remaining, finishMonth: addDaysISO(today, days).slice(0, 7) };
 }

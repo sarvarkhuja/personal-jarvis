@@ -1,17 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { itemHash, itemText, type ItemStatus, type Track } from '@/lib/domain/roadmap';
+import type { ProgressRow } from '@/lib/domain/roadmap';
 import type { RoadmapNote } from '@/lib/domain/roadmap-library';
 import type { CreateRoadmapNoteInput } from '@/lib/schemas/roadmap';
 import { CreateRoadmapNoteSchema } from '@/lib/schemas/roadmap';
 
 /** Accepts the user-session client or the service-role client; every query filters user_id. */
-export async function loadStatuses(sb: SupabaseClient, userId: string): Promise<ItemStatus[]> {
-  const { data, error } = await sb
-    .from('roadmap_item_status')
-    .select('week, track, status, item_hash, updated_at')
-    .eq('user_id', userId);
-  if (error) throw new Error(`loadStatuses: ${error.message}`);
-  return (data ?? []) as ItemStatus[];
+export async function loadProgress(sb: SupabaseClient, userId: string): Promise<ProgressRow[]> {
+  const { data, error } = await sb.from('roadmap_progress').select('key, done_at').eq('user_id', userId);
+  if (error) throw new Error(`loadProgress: ${error.message}`);
+  return (data ?? []) as ProgressRow[];
 }
 
 export async function loadNotes(sb: SupabaseClient, userId: string, opts?: { week?: number }): Promise<RoadmapNote[]> {
@@ -25,34 +22,20 @@ export async function loadNotes(sb: SupabaseClient, userId: string, opts?: { wee
   return (data ?? []) as RoadmapNote[];
 }
 
-/** Upserts a done/skipped status, or clears the row when status is null. The hash is always computed here. */
-export async function writeItemStatus(
+/** Marks a checkpoint done (idempotent) or clears it. */
+export async function writeProgress(
   sb: SupabaseClient,
   userId: string,
-  week: number,
-  track: Track,
-  status: 'done' | 'skipped' | null,
+  key: string,
+  done: boolean,
 ): Promise<{ error?: string }> {
-  if (status === null) {
-    const { error } = await sb
-      .from('roadmap_item_status')
-      .delete()
-      .eq('user_id', userId)
-      .eq('week', week)
-      .eq('track', track);
+  if (!done) {
+    const { error } = await sb.from('roadmap_progress').delete().eq('user_id', userId).eq('key', key);
     return error ? { error: error.message } : {};
   }
-  const { error } = await sb.from('roadmap_item_status').upsert(
-    {
-      user_id: userId,
-      week,
-      track,
-      status,
-      item_hash: itemHash(itemText(week, track)),
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'user_id,week,track' },
-  );
+  const { error } = await sb
+    .from('roadmap_progress')
+    .upsert({ user_id: userId, key }, { onConflict: 'user_id,key', ignoreDuplicates: true });
   return error ? { error: error.message } : {};
 }
 

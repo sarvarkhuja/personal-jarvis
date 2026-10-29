@@ -1,13 +1,12 @@
 import { z } from 'zod';
 import { normalizeTopic } from '@/lib/domain/roadmap';
 
-const TrackSchema = z.enum(['design', 'go', 'ai', 'ml', 'evidence']);
+const TrackSchema = z.enum(['go', 'ai', 'ml']);
 const WeekSchema = z.number().int().min(1).max(28);
 
-export const ItemStatusInputSchema = z.object({
-  week: WeekSchema,
-  track: TrackSchema,
-  status: z.enum(['done', 'skipped']).nullable(),
+export const ProgressInputSchema = z.object({
+  key: z.string().min(3).max(80),
+  done: z.boolean(),
 });
 
 const TopicsSchema = z.array(z.string()).transform((raw) => {

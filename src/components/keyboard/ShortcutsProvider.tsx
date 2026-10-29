@@ -15,6 +15,7 @@ const BINDINGS: Binding[] = [
   { prefix: 'g', key: 'h', href: '/habits' },
   { prefix: 'g', key: 'p', href: '/pills' },
   { prefix: 'g', key: 'g', href: '/goals' },
+  { prefix: 'g', key: 'r', href: '/roadmap' },
   { prefix: 'g', key: 'l', href: '/plans' }, // 'g l' for "plans"
   { key: 'f', href: '/focus' },
   { key: 't', href: '/today' },

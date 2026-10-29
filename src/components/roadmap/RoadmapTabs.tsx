@@ -2,16 +2,16 @@ import Link from 'next/link';
 
 const TABS = [
   { value: 'week', label: 'Week', href: '/roadmap' },
-  { value: 'library', label: 'Library', href: '/roadmap/library' },
-  { value: 'review', label: 'Review', href: '/roadmap/review' },
+  { value: 'capstones', label: 'Capstones', href: '/roadmap/capstones' },
+  { value: 'resources', label: 'Resources', href: '/roadmap/resources' },
+  { value: 'library', label: 'Notes', href: '/roadmap/library' },
 ] as const;
 
-/** Segmented link row (GoalsFilter recipe). The Review tab joins in a later task. */
-export function RoadmapTabs({ active }: { active: 'week' | 'library' | 'review' }) {
-  const tabs = TABS.filter((t) => t.value !== 'review' || active === 'review');
+/** Segmented link row (GoalsFilter recipe). */
+export function RoadmapTabs({ active }: { active: (typeof TABS)[number]['value'] }) {
   return (
-    <div className="inline-flex items-center rounded-full border border-border-visible p-0.5" data-testid="roadmap-tabs">
-      {tabs.map((t) => (
+    <div className="inline-flex flex-wrap items-center rounded-full border border-border-visible p-0.5" data-testid="roadmap-tabs">
+      {TABS.map((t) => (
         <Link
           key={t.value}
           href={t.href}

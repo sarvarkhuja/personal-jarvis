@@ -4,11 +4,11 @@ import { z } from 'zod';
 import { invalidateUserData } from '@/lib/data/invalidate';
 import { createClient } from '@/lib/supabase/action';
 import { requireUserId } from '@/lib/auth/server-user';
-import { insertNote, writeItemStatus } from '@/lib/data/roadmap';
-import type { Track } from '@/lib/domain/roadmap';
+import { insertNote, writeProgress } from '@/lib/data/roadmap';
+import { VALID_KEYS } from '@/lib/domain/roadmap-curriculum';
 import {
   CreateRoadmapNoteSchema,
-  ItemStatusInputSchema,
+  ProgressInputSchema,
   UpdateRoadmapNoteSchema,
   type CreateRoadmapNoteInput,
   type UpdateRoadmapNoteInput,
@@ -20,17 +20,17 @@ function firstIssue(error: z.ZodError) {
   return error.issues[0]?.message ?? 'Check the note and try again.';
 }
 
-export async function setItemStatus(week: number, track: Track, status: 'done' | 'skipped' | null): Promise<Result> {
+export async function setProgress(key: string, done: boolean): Promise<Result> {
   const userId = await requireUserId();
-  const parsed = ItemStatusInputSchema.safeParse({ week, track, status });
-  if (!parsed.success) return { error: 'Unknown roadmap item.' };
+  const parsed = ProgressInputSchema.safeParse({ key, done });
+  if (!parsed.success || !VALID_KEYS.has(parsed.data.key)) return { error: 'Unknown roadmap item.' };
   const supabase = await createClient();
-  const { error } = await writeItemStatus(supabase, userId, parsed.data.week, parsed.data.track, parsed.data.status);
+  const { error } = await writeProgress(supabase, userId, parsed.data.key, parsed.data.done);
   if (error) {
-    console.error('[setItemStatus]', error);
+    console.error('[setProgress]', error);
     return { error: 'Could not save. Try again.' };
   }
-  invalidateUserData(userId, 'roadmap_item_status');
+  invalidateUserData(userId, 'roadmap_progress');
   return { success: true };
 }
 
