@@ -33,7 +33,7 @@ export function TopGoalsWidget({
     <WidgetCard
       title="[ GOALS ]"
       testid="top-goals-widget"
-      right={<WidgetLink href="/goals">ALL</WidgetLink>}
+      right={<WidgetLink href="/habits">ALL</WidgetLink>}
     >
       {top.length === 0 ? (
         <WidgetEmpty>No active goals</WidgetEmpty>

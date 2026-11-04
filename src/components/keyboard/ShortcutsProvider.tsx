@@ -14,7 +14,7 @@ type Binding = {
 const BINDINGS: Binding[] = [
   { prefix: 'g', key: 'h', href: '/habits' },
   { prefix: 'g', key: 'p', href: '/pills' },
-  { prefix: 'g', key: 'g', href: '/goals' },
+  { prefix: 'g', key: 'g', href: '/habits' },
   { prefix: 'g', key: 'r', href: '/roadmap' },
   { key: 'f', href: '/focus' },
   { key: 't', href: '/today' },

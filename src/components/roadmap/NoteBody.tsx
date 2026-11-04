@@ -18,6 +18,15 @@ export function NoteBody({ markdown, className }: { markdown: string; className?
         skipHtml
         components={{
           table: ({ children }) => <div className="table-scroll"><table>{children}</table></div>,
+          // Surface the fence language (```go) as data-language so CSS can label the block.
+          pre: ({ children, node }) => {
+            const code = node?.children.find((child) => child.type === 'element');
+            const classes = code?.type === 'element' ? code.properties?.className : undefined;
+            const lang = Array.isArray(classes)
+              ? String(classes.find((c) => String(c).startsWith('language-')) ?? '').replace('language-', '')
+              : '';
+            return <pre {...(lang ? { 'data-language': lang } : {})}>{children}</pre>;
+          },
           a: ({ href, children }) => {
             const external = /^https?:\/\//.test(href ?? '');
             return (

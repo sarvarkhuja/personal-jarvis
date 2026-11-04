@@ -8,6 +8,7 @@ import { Placeholder } from '@tiptap/extensions';
 import { Markdown } from '@tiptap/markdown';
 import { cn } from '@/lib/utils';
 import { looksLikeMarkdown } from '@/lib/domain/note-markdown';
+import { CodeFence } from './code-fence';
 
 export type NoteEditorHandle = { focus: () => void };
 
@@ -45,7 +46,8 @@ export function NoteEditor({ value, onChange, onSubmit, disabled = false, autoFo
   const [options] = useState<UseEditorOptions & { immediatelyRender: false }>(() => ({
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({ link: { openOnClick: false } }),
+      StarterKit.configure({ codeBlock: false, link: { openOnClick: false } }),
+      CodeFence,
       TableKit.configure({ table: { resizable: false } }),
       Placeholder.configure({ placeholder }),
       Markdown,

@@ -5,7 +5,7 @@ export const SELF_IMAGE_PILLARS = [
   { key: 'ml', label: 'Machine learning', href: '/focus' },
   { key: 'physique', label: 'Physique', href: '/workout' },
   { key: 'salah', label: 'Salah', href: '/salah' },
-  { key: 'work', label: 'Work', href: '/goals' },
+  { key: 'work', label: 'Work', href: '/habits' },
 ] as const;
 
 export type SelfImagePillar = (typeof SELF_IMAGE_PILLARS)[number]['key'];

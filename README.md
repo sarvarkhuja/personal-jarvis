@@ -167,7 +167,7 @@ src/
   proxy.ts              # Auth middleware (exported Web Handler) — runs on most routes
   app/
     (auth)/             # /login, /signup
-    (app)/              # authenticated dashboard pages (goals, habits, pills, focus, workout, today)
+    (app)/              # authenticated dashboard pages (habits = Goals & Habits; /goals redirects there, pills, focus, workout, today)
     api/                # route handlers (e.g. /api/export)
   actions/              # server actions
   lib/supabase/         # server.ts / action.ts / admin.ts client factories

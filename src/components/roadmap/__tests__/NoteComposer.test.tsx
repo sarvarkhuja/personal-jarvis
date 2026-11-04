@@ -146,6 +146,12 @@ describe('NoteComposer', () => {
     expect(createRoadmapNote).not.toHaveBeenCalled();
   });
 
+  it('shows how to write a code block under the note', async () => {
+    render(<NoteComposer week={6} known={known} />);
+    await screen.findByRole('textbox', { name: 'Note' });
+    expect(screen.getByText(/``` \+ enter for code/i)).toBeInTheDocument();
+  });
+
   it('returns focus to the note after a save', async () => {
     const user = userEvent.setup();
     render(<NoteComposer week={6} known={known} />);

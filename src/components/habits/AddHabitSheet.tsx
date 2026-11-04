@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,6 +26,7 @@ import {
 } from '@/components/ui/sheet';
 import { DayOfWeekPicker } from './DayOfWeekPicker';
 import { ColorPicker } from './ColorPicker';
+import { AddGoalSheet } from '@/components/goals/AddGoalSheet';
 
 const KIND_OPTIONS = [
   { value: 'check', label: 'Checkbox (done / not done)' },
@@ -48,7 +48,16 @@ type FormValues = Omit<CreateHabitInput, 'frequency' | 'scheduled_time'> & {
 
 type GoalOption = { id: string; label: string };
 
-export function AddHabitSheet({ goalOptions }: { goalOptions: GoalOption[] }) {
+export function AddHabitSheet({
+  goalOptions,
+  defaultGoalId,
+  triggerLabel = 'Add habit',
+}: {
+  goalOptions: GoalOption[];
+  /** Preselects this goal in the form (e.g. the `+ HABIT` button on a goal card). */
+  defaultGoalId?: string;
+  triggerLabel?: string;
+}) {
   const [open, setOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [serverError, setServerError] = React.useState<string | null>(null);
@@ -60,7 +69,7 @@ export function AddHabitSheet({ goalOptions }: { goalOptions: GoalOption[] }) {
       resolver: zodResolver(FormSchema as never),
       defaultValues: {
         name: '',
-        goal_id: '',
+        goal_id: defaultGoalId ?? '',
         kind: 'check',
         target: undefined,
         unit: '',
@@ -101,15 +110,27 @@ export function AddHabitSheet({ goalOptions }: { goalOptions: GoalOption[] }) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
-        render={<Button data-testid="add-habit-trigger">Add habit</Button>}
-      />
+        render={
+          defaultGoalId ? (
+            <button
+              type="button"
+              data-testid={`add-habit-trigger-${defaultGoalId}`}
+              className="font-mono text-[10px] uppercase tracking-[0.08em] text-text-secondary transition-colors duration-200 ease-out hover:text-text-primary motion-reduce:transition-none"
+            />
+          ) : (
+            <Button data-testid="add-habit-trigger" />
+          )
+        }
+      >
+        {triggerLabel}
+      </SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Add habit</SheetTitle>
           <SheetDescription>
             {hasGoals
               ? 'Track something you want to do regularly. Pick the goal it serves.'
-              : 'Habits belong to a goal. Create a goal first.'}
+              : 'Track something you want to do regularly.'}
           </SheetDescription>
         </SheetHeader>
 
@@ -119,18 +140,15 @@ export function AddHabitSheet({ goalOptions }: { goalOptions: GoalOption[] }) {
             className="flex flex-col gap-3 px-4"
           >
             <p className="text-sm text-muted-foreground">
-              You don&apos;t have any active goals yet. A habit must be tied to one.
+              Habits belong to a goal. Create one first.
             </p>
-            <Button
-              render={
-                <Link
-                  href="/goals"
-                  data-testid="add-habit-goto-goals"
-                />
-              }
-            >
-              Go to Goals
-            </Button>
+            <div>
+              <AddGoalSheet
+                habitOptions={[]}
+                goalOptions={[]}
+                triggerLabel="Create a goal"
+              />
+            </div>
           </div>
         ) : (
           <form

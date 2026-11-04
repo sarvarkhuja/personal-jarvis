@@ -4,7 +4,7 @@ export default function HabitsLoading() {
       <header className="mb-6 flex items-end justify-between gap-4">
         <div>
           <h1 className="font-sans text-2xl font-medium tracking-tight text-text-display">
-            Habits
+            Goals &amp; Habits
           </h1>
           <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.08em] text-text-disabled">
             [ LOADING… ]

@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Dumbbell, User, LogOut, Sun, Moon, ListChecks, Pill, Target, Timer, Settings, Route } from 'lucide-react'
+import { Home, Dumbbell, User, LogOut, Sun, Moon, ListChecks, Pill, Timer, Settings, Route } from 'lucide-react'
 import { signOut } from '@/actions/auth'
 import { ThemeToggle } from '@/components/theme-toggle'
 import {
@@ -20,10 +20,9 @@ import {
 const NAV_ITEMS = [
   { href: '/', icon: Home, label: 'Home' },
   { href: '/today', icon: Sun, label: 'Today' },
-  { href: '/habits', icon: ListChecks, label: 'Habits' },
+  { href: '/habits', icon: ListChecks, label: 'Goals & Habits' },
   { href: '/pills', icon: Pill, label: 'Pills' },
   { href: '/salah', icon: Moon, label: 'Salah' },
-  { href: '/goals', icon: Target, label: 'Goals' },
   { href: '/roadmap', icon: Route, label: 'Roadmap' },
   { href: '/focus', icon: Timer, label: 'Focus' },
   { href: '/settings', icon: Settings, label: 'Settings' },

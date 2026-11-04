@@ -95,6 +95,7 @@ export function NoteComposer({ week, known, initial, onDone }: {
         onChange={(markdown) => { setBody(markdown); setSaved(false); }}
         onSubmit={submit}
       />
+      <p className={cn(mono, 'text-text-disabled')}>``` + enter for code · tab indents · ``` closes · paste keeps tables</p>
 
       <div className="flex flex-wrap items-center gap-1">
         {topics.map((t) => (

@@ -24,6 +24,12 @@ test.describe("Habits — happy path", () => {
 			await page.getByRole("button", { name: /sign in|log in/i }).click();
 			await page.waitForURL((u) => !u.pathname.startsWith("/login"));
 
+			// Habits belong to a goal, so seed one first.
+			const { error: goalErr } = await adminClient(env)
+				.from("goals")
+				.insert({ user_id: user.id, title: "Stay hydrated", status: "active" });
+			expect(goalErr).toBeNull();
+
 			// Go to /habits and create a habit.
 			await page.goto("/habits");
 			await page.getByTestId("add-habit-trigger").click();
@@ -52,6 +58,7 @@ test.describe("Habits — happy path", () => {
 		} finally {
 			// Cleanup: cascade FKs delete habit + habit_logs.
 			await adminClient(env).from("habits").delete().eq("user_id", user.id);
+			await adminClient(env).from("goals").delete().eq("user_id", user.id);
 			await deleteTestUser(env, user.id).catch(() => {});
 		}
 	});

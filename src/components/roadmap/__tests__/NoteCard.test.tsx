@@ -66,6 +66,11 @@ describe('NoteCard', () => {
     expect(screen.queryByText('| Broker | ZK |')).not.toBeInTheDocument();
   });
 
+  it('labels a rendered code block with its language', () => {
+    const { container } = render(<NoteCard note={{ ...note, body: '```go\nclose(ch)\n```' }} tz="UTC" />);
+    expect(container.querySelector('pre')).toHaveAttribute('data-language', 'go');
+  });
+
   it('keeps single line breaks from plain-text notes written before markdown', () => {
     const { container } = render(<NoteCard note={{ ...note, body: 'line one\nline two' }} tz="UTC" />);
     expect(container.querySelector('br')).not.toBeNull();

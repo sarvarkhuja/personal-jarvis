@@ -46,14 +46,28 @@ export function AddGoalSheet({
   goalOptions,
   defaultParentId,
   triggerLabel = 'Add goal',
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
 }: GoalOptions & {
   triggerLabel?: string;
+  /** Controlled open state — lets a parent (e.g. a goal's ⋯ menu) open the sheet. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Render no trigger button; the parent opens the sheet via `open`. */
+  hideTrigger?: boolean;
 }) {
-  const [open, setOpen] = React.useState(false);
+  const [openState, setOpenState] = React.useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (next: boolean) => {
+    if (openProp === undefined) setOpenState(next);
+    onOpenChange?.(next);
+  };
   const [draft, setDraft] = React.useState<FormValues | undefined>(undefined);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
+      {!hideTrigger && (
       <SheetTrigger
         render={
           <button
@@ -73,6 +87,7 @@ export function AddGoalSheet({
           </button>
         }
       />
+      )}
       <SheetContent side="right" className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle>{defaultParentId ? 'Add sub-goal' : 'Add goal'}</SheetTitle>
