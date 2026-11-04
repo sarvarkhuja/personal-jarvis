@@ -29,7 +29,7 @@ export async function setTheme(input: SetThemeInput) {
 
 /**
  * Permanently deletes the current user. Cascades through every FK to
- * auth.users (habits, goals, events, …), removing all per-user data.
+ * auth.users (habits, goals, …), removing all per-user data.
  *
  * Requires SUPABASE_SERVICE_ROLE_KEY to be set on the server.
  */

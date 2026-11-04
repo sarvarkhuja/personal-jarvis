@@ -5,10 +5,12 @@ import { cn } from '@/lib/utils';
 import { createRoadmapNote, updateRoadmapNote } from '@/lib/actions/roadmap';
 import { NOTE_KINDS, TRACKS, normalizeTopic, suggestTopics, type NoteKind, type Track } from '@/lib/domain/roadmap';
 import type { RoadmapNote } from '@/lib/domain/roadmap-library';
+import { NoteEditor, type NoteEditorHandle } from './NoteEditor';
 
 const mono = 'font-mono text-[10px] uppercase tracking-[0.08em]';
 const btn = `${mono} inline-flex min-h-6 items-center px-2 transition-colors duration-200 ease-out disabled:opacity-40 motion-reduce:transition-none`;
-const field = 'w-full resize-none rounded-md border border-border-visible bg-background p-3 text-sm leading-relaxed text-text-primary outline-none focus:border-text-primary';
+/** Mirrors the schema and DB check on roadmap_notes.body (markdown length). */
+const BODY_MAX = 4000;
 
 type Result = { success: true } | { success: true; id: string } | { error: string };
 
@@ -34,9 +36,10 @@ export function NoteComposer({ week, known, initial, onDone }: {
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<NoteEditorHandle>(null);
   const full = topics.length >= 8;
-  useEffect(() => { if (saved && !pending) bodyRef.current?.focus(); }, [saved, pending]);
+  const over = body.length > BODY_MAX;
+  useEffect(() => { if (saved && !pending) editorRef.current?.focus(); }, [saved, pending]);
 
   const addTopic = (raw: string) => {
     if (full) return;
@@ -47,7 +50,7 @@ export function NoteComposer({ week, known, initial, onDone }: {
   const suggestions = suggestTopics(week).filter((s) => !topics.includes(s)).slice(0, 6);
 
   const submit = () => {
-    if (pending || !body.trim()) return;
+    if (pending || over || !body.trim()) return;
     const slug = normalizeTopic(topicDraft);
     const finalTopics = slug && !topics.includes(slug) && topics.length < 8 ? [...topics, slug] : topics;
     setError('');
@@ -84,19 +87,13 @@ export function NoteComposer({ week, known, initial, onDone }: {
         ))}
       </div>
 
-      <textarea
-        ref={bodyRef}
-        aria-label="Note"
-        rows={4}
-        maxLength={4000}
+      <NoteEditor
+        handle={editorRef}
         value={body}
         disabled={pending}
-        placeholder="What did you learn?"
-        className={field}
-        onChange={(event) => { setBody(event.target.value); setSaved(false); }}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); submit(); }
-        }}
+        autoFocus={Boolean(initial)}
+        onChange={(markdown) => { setBody(markdown); setSaved(false); }}
+        onSubmit={submit}
       />
 
       <div className="flex flex-wrap items-center gap-1">
@@ -165,11 +162,13 @@ export function NoteComposer({ week, known, initial, onDone }: {
           <option value="">NO TRACK</option>
           {TRACKS.map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
         </select>
-        <span className={cn(mono, 'ml-auto text-text-disabled')}>{body.length}/4000</span>
+        <span role={over ? 'status' : undefined} className={cn(mono, 'ml-auto', over ? 'text-warning' : 'text-text-disabled')}>
+          {body.length}/{BODY_MAX}
+        </span>
       </div>
 
       <div className="flex flex-wrap items-center gap-1">
-        <button type="submit" disabled={pending || !body.trim()} className={cn(btn, 'rounded-full border border-text-primary text-text-primary')}>
+        <button type="submit" disabled={pending || over || !body.trim()} className={cn(btn, 'rounded-full border border-text-primary text-text-primary')}>
           {pending ? '[ SAVING… ]' : 'SAVE'}
         </button>
         {initial && (

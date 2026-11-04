@@ -8,6 +8,7 @@ import { NOTE_KINDS } from '@/lib/domain/roadmap';
 import type { RoadmapNote } from '@/lib/domain/roadmap-library';
 import { toUserDate } from '@/lib/domain/timezone';
 import { formatUTCDate } from '@/lib/utils/workout-metrics';
+import { NoteBody } from './NoteBody';
 import { NoteComposer } from './NoteComposer';
 
 const mono = 'font-mono text-[10px] uppercase tracking-[0.08em]';
@@ -68,7 +69,7 @@ export function NoteCard({ note, tz, known = [], footer }: {
           ))}
         </div>
       </div>
-      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-text-primary">{note.body}</p>
+      <NoteBody markdown={note.body} className="mt-2 break-words" />
       {note.topics.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {note.topics.map((t) => (

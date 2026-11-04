@@ -56,11 +56,32 @@ describe('NoteCard', () => {
     await waitFor(() => expect(deleteRoadmapNote).toHaveBeenCalledWith(note.id));
   });
 
+  it('renders a markdown body with its table, code block and emphasis', () => {
+    const body = 'Compare:\n\n| Broker | ZK |\n| --- | --- |\n| Redpanda | no |\n\n```go\nclose(ch)\n```\n\nUse **buffered** channels.';
+    const { container } = render(<NoteCard note={{ ...note, body }} tz="UTC" />);
+    expect(container.querySelector('table th')).toHaveTextContent('Broker');
+    expect(container.querySelector('table td')).toHaveTextContent('Redpanda');
+    expect(container.querySelector('pre code')).toHaveTextContent('close(ch)');
+    expect(container.querySelector('strong')).toHaveTextContent('buffered');
+    expect(screen.queryByText('| Broker | ZK |')).not.toBeInTheDocument();
+  });
+
+  it('keeps single line breaks from plain-text notes written before markdown', () => {
+    const { container } = render(<NoteCard note={{ ...note, body: 'line one\nline two' }} tz="UTC" />);
+    expect(container.querySelector('br')).not.toBeNull();
+    expect(container.querySelectorAll('p')).toHaveLength(1);
+  });
+
+  it('never renders raw HTML from a note body', () => {
+    const { container } = render(<NoteCard note={{ ...note, body: 'x <img src=x onerror="alert(1)"> y' }} tz="UTC" />);
+    expect(container.querySelector('img')).toBeNull();
+  });
+
   it('swaps to the composer on EDIT', async () => {
     const user = userEvent.setup();
     render(<NoteCard note={note} tz="UTC" />);
     await user.click(screen.getByRole('button', { name: 'EDIT' }));
-    expect(screen.getByLabelText('Note')).toHaveValue('Channels block');
+    expect(await screen.findByRole('textbox', { name: 'Note' })).toHaveTextContent('Channels block');
   });
 
   it('No on delete confirm makes no call', async () => {

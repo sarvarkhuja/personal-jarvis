@@ -33,17 +33,35 @@ test.describe("Roadmap — progress and notes", () => {
 			await expect(exercise).toHaveAttribute("aria-pressed", "true");
 
 			await page.getByRole("tab", { name: /^Notes/ }).click();
-			await page.getByLabel("Note", { exact: true }).fill("Redpanda is Kafka without ZooKeeper");
+			const note = page.getByRole("textbox", { name: "Note" });
+			await note.fill("Redpanda is Kafka without ZooKeeper");
+			// Paste the way a browser does when copying from Claude/ChatGPT: HTML on the clipboard.
+			await note.evaluate((el) => {
+				const dt = new DataTransfer();
+				dt.setData(
+					"text/html",
+					'<table><thead><tr><th>Broker</th><th>ZooKeeper</th></tr></thead><tbody><tr><td>Redpanda</td><td>no</td></tr></tbody></table><pre><code class="language-go">close(ch)</code></pre>',
+				);
+				dt.setData("text/plain", "Broker ZooKeeper Redpanda no close(ch)");
+				el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+			});
+			await expect(note.locator("table td", { hasText: "Redpanda" })).toBeVisible();
+			await expect(note.locator("pre code")).toHaveText("close(ch)");
 			await page.getByLabel("Topic", { exact: true }).fill("kafka-redpanda");
 			await page.getByLabel("Topic", { exact: true }).press("Enter");
 			await page.getByRole("button", { name: "Confidence 1" }).click();
 			await page.getByRole("button", { name: "SAVE", exact: true }).click();
 			await expect(page.getByText("[ SAVED ]")).toBeVisible();
+			await expect(note).toHaveText("");
 
 			await page.goto("/roadmap/library?topic=kafka-redpanda&conf=1");
 			await expect(
 				page.getByText("Redpanda is Kafka without ZooKeeper"),
 			).toBeVisible();
+			const card = page.locator("article", { hasText: "Redpanda is Kafka without ZooKeeper" });
+			await expect(card.locator("table th", { hasText: "Broker" })).toBeVisible();
+			await expect(card.locator("table td", { hasText: "Redpanda" })).toBeVisible();
+			await expect(card.locator("pre code")).toHaveText("close(ch)");
 		} finally {
 			const admin = adminClient(env);
 			await admin.from("roadmap_notes").delete().eq("user_id", user.id);

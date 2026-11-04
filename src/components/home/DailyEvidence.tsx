@@ -1,6 +1,6 @@
 import { createReadClient } from '@/lib/supabase/read';
 import { loadProfile } from '@/lib/data/profile';
-import { toUserDate, userDayBounds } from '@/lib/domain/timezone';
+import { toUserDate } from '@/lib/domain/timezone';
 import { computeStreak } from '@/lib/domain/streak';
 import {
   addDaysISO,
@@ -15,13 +15,10 @@ import {
 import type { FrequencyJson } from '@/lib/schemas/habits';
 import {
   bodyWeightSummary,
-  monthSpendSummary,
   pillWeekAdherence,
 } from '@/lib/domain/home-overview';
 import { HabitsConsistencyInstrument } from '@/components/habits/HabitsConsistencyInstrument';
 import { TopGoalsWidget } from '@/components/today/TopGoalsWidget';
-import { UpcomingEventsWidget } from '@/components/today/UpcomingEventsWidget';
-import { ExpensesGlance } from '@/components/home/ExpensesGlance';
 import { FocusGlance } from '@/components/home/FocusGlance';
 import { PillsGlance } from '@/components/home/PillsGlance';
 import { LiftsGlance } from '@/components/home/LiftsGlance';
@@ -54,16 +51,10 @@ export async function DailyEvidence({ userId, now }: { userId: string; now: Date
   const tz = (profile as { timezone?: string } | null)?.timezone ?? 'UTC';
 
   const today = toUserDate(now, tz);
-  const tomorrow = addDaysISO(today, 1);
 
   // Query windows.
   const habitSince = addDaysISO(today, -60);
   const pillSince = addDaysISO(today, -6);
-  const { startUtc } = userDayBounds(today, tz);
-  const { endUtc: tomorrowEndUtc } = userDayBounds(tomorrow, tz);
-  const sixMonthsAgo = new Date(now);
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  const sixMonthsAgoStr = sixMonthsAgo.toISOString().slice(0, 10);
   const focusSince = new Date(now.getTime() - FOCUS_WINDOW_MS);
   focusSince.setUTCHours(0, 0, 0, 0);
   const focusSinceIso = focusSince.toISOString();
@@ -75,10 +66,8 @@ export async function DailyEvidence({ userId, now }: { userId: string; now: Date
     habitsResult,
     habitLogsResult,
     activeGoalsResult,
-    expensesResult,
     medicationsResult,
     medicationLogsResult,
-    eventsResult,
     focusSessionsResult,
     weeklyLiftsResult,
     bodyMetricsResult,
@@ -103,11 +92,6 @@ export async function DailyEvidence({ userId, now }: { userId: string; now: Date
       .order('target_date', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true }),
     supabase
-      .from('expenses')
-      .select('amount, date')
-      .eq('user_id', userId)
-      .gte('date', sixMonthsAgoStr),
-    supabase
       .from('medications')
       .select('id, name')
       .eq('user_id', userId)
@@ -117,13 +101,6 @@ export async function DailyEvidence({ userId, now }: { userId: string; now: Date
       .select('medication_id, log_date')
       .eq('user_id', userId)
       .gte('log_date', pillSince),
-    supabase
-      .from('events')
-      .select('id, title, starts_at, ends_at, kind')
-      .eq('user_id', userId)
-      .gte('starts_at', startUtc.toISOString())
-      .lt('starts_at', tomorrowEndUtc.toISOString())
-      .order('starts_at', { ascending: true }),
     supabase
       .from('focus_sessions')
       .select('id, started_at, ended_at, planned_minutes, completed, intent')
@@ -187,13 +164,6 @@ export async function DailyEvidence({ userId, now }: { userId: string; now: Date
     target_date: string | null;
   }>;
 
-  // ── Expenses ───────────────────────────────────────────────────────────────
-  const expenses = (expensesResult.data ?? []) as Array<{
-    amount: number;
-    date: string;
-  }>;
-  const spend = monthSpendSummary(expenses, today);
-
   // ── Pills ──────────────────────────────────────────────────────────────────
   const medications = (medicationsResult.data ?? []) as Array<{
     id: string;
@@ -239,21 +209,6 @@ export async function DailyEvidence({ userId, now }: { userId: string; now: Date
     today,
     WEIGHT_TREND_DAYS,
   );
-
-  // ── Events (today + tomorrow agenda) ────────────────────────────────────────
-  const upcomingEvents = (eventsResult.data ?? []) as Array<{
-    id: string;
-    title: string;
-    starts_at: string;
-    ends_at: string | null;
-    kind: 'event' | 'appointment' | 'milestone';
-  }>;
-  const todayEvents = upcomingEvents
-    .map((e) => ({ ...e, localDate: toUserDate(e.starts_at, tz) }))
-    .filter((e) => e.localDate === today);
-  const tomorrowEvents = upcomingEvents
-    .map((e) => ({ ...e, localDate: toUserDate(e.starts_at, tz) }))
-    .filter((e) => e.localDate === tomorrow);
 
   // ── Focus (this week + streak) ──────────────────────────────────────────────
   const focusWindowStart = addDays(today, -60);
@@ -331,17 +286,11 @@ export async function DailyEvidence({ userId, now }: { userId: string; now: Date
 
             <div className="gap-4 lg:columns-2 xl:columns-3">
               <TopGoalsWidget goals={activeGoals} today={today} />
-              <ExpensesGlance summary={spend} />
               <FocusGlance week={focusMetrics.week} streakCount={focusMetrics.streak.count} />
               <PillsGlance adherence={pills} />
               <SalahGlance summary={salahSummary} />
               <LiftsGlance rows={liftRows} loggedCount={liftsLoggedCount} />
               <BodyWeightGlance summary={bodyWeight} days={WEIGHT_TREND_DAYS} />
-              <UpcomingEventsWidget
-                todayEvents={todayEvents}
-                tomorrowEvents={tomorrowEvents}
-                tz={tz}
-              />
             </div>
           </div>
   );

@@ -33,7 +33,7 @@ components:
 
 ## Overview
 
-Jarvis is an English-language personal dashboard for everyday tracking: habits, focus, goals, medication, expenses, workouts, and prayer. The established reference is a compact instrument panel: monospaced captions, dotted numerical displays, restrained red accents, and bordered cards. This performance work preserves that identity and existing interactions.
+Jarvis is an English-language personal dashboard for everyday tracking: habits, focus, goals, medication, workouts, and prayer. The established reference is a compact instrument panel: monospaced captions, dotted numerical displays, restrained red accents, and bordered cards. This performance work preserves that identity and existing interactions.
 
 The runtime token source is `src/app/globals.css`. Its CSS variables feed Tailwind v4 through `@theme inline`, then shared components under `src/components/ui`. This document mirrors that source; it does not generate CSS. No market-specific or Japanese-localization requirements are established by the current repository.
 

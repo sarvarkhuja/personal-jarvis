@@ -9,7 +9,6 @@ const TABLES = [
   'medications',
   'medication_logs',
   'goals',
-  'events',
   'focus_sessions',
   'salah_logs',
   'salah_settings',

@@ -1,19 +1,3 @@
-'use client';
-
-import { useState } from 'react';
-
-export type StripEvent = {
-  id: string;
-  title: string;
-  kind: 'event' | 'appointment' | 'milestone';
-  /** Minutes since local midnight. */
-  startMin: number;
-  /** End minutes since local midnight, or null for a point-in-time event. */
-  endMin: number | null;
-  /** Pre-formatted `HH:mm` in the user's timezone. */
-  timeLabel: string;
-};
-
 // The day clock runs from the first useful hour to midnight — the deadline the
 // hero counts down to. Positions outside the window clamp to the nearest edge.
 const DAY_START = 6 * 60; // 06:00
@@ -24,9 +8,8 @@ const pct = (min: number) =>
 
 /**
  * Today's signature instrument: a Doto count of open loops over a horizontal
- * day clock. Elapsed time fills from dawn to a NOW needle; today's events sit
- * as ticks whose opacity encodes past / now / upcoming. Same instrument family
- * as the Expenses burn strip and the Goals horizon.
+ * day clock. Elapsed time fills from dawn to a NOW needle. Same instrument
+ * family as the Goals horizon.
  */
 export function DayStrip({
   dateLabel,
@@ -35,7 +18,6 @@ export function DayStrip({
   openHabits,
   pendingPills,
   focusMinutes,
-  events,
 }: {
   dateLabel: string;
   nowLabel: string;
@@ -43,14 +25,8 @@ export function DayStrip({
   openHabits: number;
   pendingPills: number;
   focusMinutes: number;
-  events: StripEvent[];
 }) {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-
   const openCount = openHabits + pendingPills;
-  const evs = [...events].sort((a, b) => a.startMin - b.startMin);
-  const nextEvent = evs.find((e) => e.startMin >= nowMinutes) ?? null;
-  const hovered = hoveredId ? (evs.find((e) => e.id === hoveredId) ?? null) : null;
 
   const nowPct = pct(nowMinutes);
   // The NOW label rides the same position as the needle; the translate keeps it
@@ -59,13 +35,6 @@ export function DayStrip({
   // Drop whichever fixed edge label the needle is about to sit on.
   const showStartLabel = nowPct > 15;
   const showEndLabel = nowPct < 85;
-
-  const tickColor = (e: StripEvent) => {
-    if (e.endMin != null && e.startMin <= nowMinutes && nowMinutes < e.endMin)
-      return 'bg-text-primary'; // happening now
-    if (e.startMin < nowMinutes) return 'bg-text-disabled'; // past
-    return 'bg-text-secondary'; // upcoming
-  };
 
   // ── the one human sentence ──────────────────────────────────────────────
   const segs: string[] = [];
@@ -80,10 +49,7 @@ export function DayStrip({
         ? `Everything's logged — ${focusMinutes} minute${focusMinutes === 1 ? '' : 's'} focused so far. Enjoy the rest of the day.`
         : `Everything's logged. Nothing left to close today.`;
   } else {
-    const nextBit = nextEvent
-      ? ` · next up ${nextEvent.title} at ${nextEvent.timeLabel}`
-      : '';
-    sentence = `${segs.join(' and ')} still pending${nextBit}.`;
+    sentence = `${segs.join(' and ')} still pending.`;
   }
 
   return (
@@ -94,8 +60,7 @@ export function DayStrip({
           [ TODAY · {dateLabel} ]
         </span>
         <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary">
-          {focusMinutes} MIN FOCUS · {events.length}{' '}
-          {events.length === 1 ? 'EVENT' : 'EVENTS'}
+          {focusMinutes} MIN FOCUS
         </span>
       </div>
 
@@ -123,22 +88,8 @@ export function DayStrip({
         </div>
       </div>
 
-      {/* hover inspector — height reserved → no layout shift */}
-      <div
-        role="status"
-        aria-live="polite"
-        className="mb-3 h-4 font-mono text-[11px] uppercase tracking-[0.08em] text-text-secondary"
-      >
-        {hovered && (
-          <>
-            <span className="text-text-primary">{hovered.timeLabel}</span> ·{' '}
-            {hovered.title}
-          </>
-        )}
-      </div>
-
       {/* the day clock */}
-      <div className="relative h-10">
+      <div className="relative mt-11 h-10">
         {/* day axis */}
         <div
           aria-hidden
@@ -150,24 +101,6 @@ export function DayStrip({
           className="absolute left-0 top-[23px] h-[3px] bg-text-primary"
           style={{ width: `${nowPct}%` }}
         />
-        {/* event ticks, above the line */}
-        {evs.map((e) => (
-          <button
-            key={e.id}
-            type="button"
-            style={{ left: `${pct(e.startMin)}%` }}
-            onMouseEnter={() => setHoveredId(e.id)}
-            onMouseLeave={() => setHoveredId(null)}
-            onFocus={() => setHoveredId(e.id)}
-            onBlur={() => setHoveredId(null)}
-            aria-label={`${e.timeLabel} ${e.title}`}
-            className="absolute top-2 flex h-6 w-6 -translate-x-1/2 items-start justify-center focus:outline-none focus-visible:ring-1 focus-visible:ring-text-primary"
-          >
-            <span
-              className={`block h-4 w-[2px] transition-colors duration-200 ease-out motion-reduce:transition-none ${tickColor(e)}`}
-            />
-          </button>
-        ))}
         {/* NOW needle — the sole reference mark, crossing below the line */}
         <div
           aria-hidden

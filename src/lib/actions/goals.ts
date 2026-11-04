@@ -123,5 +123,5 @@ export async function deleteGoal(input: DeleteGoalInput) {
 
   if (error) failed('deleteGoal', error);
   // Goal deletion cascades to its habits/logs and clears linked foreign keys.
-  invalidateUserData(userId, 'goals', 'habits', 'habit_logs', 'events', 'focus_sessions');
+  invalidateUserData(userId, 'goals', 'habits', 'habit_logs', 'focus_sessions');
 }

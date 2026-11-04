@@ -1,6 +1,6 @@
 # Personal Jarvis
 
-A personal life-tracking dashboard (expenses, goals, habits, pills, focus, workouts) built on
+A personal life-tracking dashboard (goals, habits, pills, focus, workouts) built on
 Next.js + Supabase.
 
 - **Framework:** Next.js (App Router, React Compiler enabled)
@@ -167,7 +167,7 @@ src/
   proxy.ts              # Auth middleware (exported Web Handler) — runs on most routes
   app/
     (auth)/             # /login, /signup
-    (app)/              # authenticated dashboard pages (expenses, goals, habits, pills, focus, workout, today)
+    (app)/              # authenticated dashboard pages (goals, habits, pills, focus, workout, today)
     api/                # route handlers (e.g. /api/export)
   actions/              # server actions
   lib/supabase/         # server.ts / action.ts / admin.ts client factories

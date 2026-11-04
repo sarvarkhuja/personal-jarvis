@@ -63,17 +63,6 @@ export interface WeeklyLift {
   updated_at: string
 }
 
-export interface Expense {
-  id: string
-  user_id: string
-  amount: number
-  currency: string
-  category: 'food' | 'transport' | 'shopping' | 'entertainment' | 'health' | 'other'
-  description: string | null
-  date: string
-  created_at: string
-}
-
 export interface Goal {
   id: string
   user_id: string

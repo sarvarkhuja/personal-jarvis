@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   bodyWeightSummary,
   formatMinutes,
-  monthSpendSummary,
   pillWeekAdherence,
 } from '../home-overview';
 
@@ -17,50 +16,6 @@ describe('formatMinutes', () => {
   it('rounds and floors negatives to 0m', () => {
     expect(formatMinutes(59.6)).toBe('1h');
     expect(formatMinutes(-5)).toBe('0m');
-  });
-});
-
-describe('monthSpendSummary', () => {
-  const today = '2026-06-27';
-  it('totals the current month and the delta vs previous month', () => {
-    const s = monthSpendSummary(
-      [
-        { date: '2026-06-10', amount: 100 },
-        { date: '2026-06-20', amount: 50 },
-        { date: '2026-05-15', amount: 200 },
-      ],
-      today,
-    );
-    expect(s.thisMonthTotal).toBe(150);
-    expect(s.prevMonthTotal).toBe(200);
-    expect(s.delta).toBe(-50);
-    expect(s.monthLabel).toBe('JUN');
-  });
-  it('returns a 6-month ascending trend flagging the current month', () => {
-    const s = monthSpendSummary([{ date: '2026-06-10', amount: 100 }], today);
-    expect(s.trend).toHaveLength(6);
-    expect(s.trend[s.trend.length - 1]).toMatchObject({ key: '2026-06', isCurrent: true });
-    expect(s.trend[s.trend.length - 1].total).toBe(100);
-    expect(s.trend.filter((t) => t.isCurrent)).toHaveLength(1);
-  });
-  it('handles the January previous-month rollover', () => {
-    const s = monthSpendSummary(
-      [
-        { date: '2026-01-05', amount: 10 },
-        { date: '2025-12-31', amount: 40 },
-      ],
-      '2026-01-15',
-    );
-    expect(s.thisMonthTotal).toBe(10);
-    expect(s.prevMonthTotal).toBe(40);
-    expect(s.delta).toBe(-30);
-    expect(s.monthLabel).toBe('JAN');
-  });
-  it('returns zeros for no expenses', () => {
-    const s = monthSpendSummary([], today);
-    expect(s.thisMonthTotal).toBe(0);
-    expect(s.prevMonthTotal).toBe(0);
-    expect(s.delta).toBe(0);
   });
 });
 

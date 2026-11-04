@@ -8,9 +8,8 @@ import type { FrequencyJson } from '@/lib/schemas/habits';
 import { HabitsDueWidget } from '@/components/today/HabitsDueWidget';
 import { PillsDueWidget } from '@/components/today/PillsDueWidget';
 import { TopGoalsWidget } from '@/components/today/TopGoalsWidget';
-import { UpcomingEventsWidget } from '@/components/today/UpcomingEventsWidget';
 import { FocusTodayWidget } from '@/components/today/FocusTodayWidget';
-import { DayStrip, type StripEvent } from '@/components/today/DayStrip';
+import { DayStrip } from '@/components/today/DayStrip';
 
 export default async function TodayPage() {
   const userId = await requireUserId();
@@ -41,18 +40,10 @@ export default async function TodayPage() {
   const now = new Date();
   const today = toUserDate(now, tz);
   const { startUtc, endUtc } = userDayBounds(today, tz);
-  // Tomorrow's day window — used by the upcoming-events widget.
-  const tomorrowDate = new Date(`${today}T00:00:00Z`);
-  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
-  const tomorrow = tomorrowDate.toISOString().slice(0, 10);
-  const { startUtc: tomorrowStartUtc, endUtc: tomorrowEndUtc } =
-    userDayBounds(tomorrow, tz);
-
   const [
     [habitsResult, medicationsResult, activeGoalsResult],
     todayHabitLogsResult,
     todayDoseLogsResult,
-    upcomingEventsResult,
     focusSessionsResult,
   ] = await Promise.all([
     listsPromise,
@@ -67,13 +58,6 @@ export default async function TodayPage() {
       .select('medication_id, log_date')
       .eq('user_id', userId)
       .eq('log_date', today),
-    supabase
-      .from('events')
-      .select('id, title, starts_at, ends_at, kind')
-      .eq('user_id', userId)
-      .gte('starts_at', startUtc.toISOString())
-      .lt('starts_at', tomorrowEndUtc.toISOString())
-      .order('starts_at', { ascending: true }),
     supabase
       .from('focus_sessions')
       .select('id, started_at, ended_at, planned_minutes, completed, intent')
@@ -111,23 +95,6 @@ export default async function TodayPage() {
     target_date: string | null;
   }>;
 
-  const upcomingEvents = (upcomingEventsResult.data ?? []) as Array<{
-    id: string;
-    title: string;
-    starts_at: string;
-    ends_at: string | null;
-    kind: 'event' | 'appointment' | 'milestone';
-  }>;
-  const todayEvents = upcomingEvents
-    .map((e) => ({ ...e, localDate: toUserDate(e.starts_at, tz) }))
-    .filter((e) => e.localDate === today);
-  const tomorrowEvents = upcomingEvents
-    .map((e) => ({ ...e, localDate: toUserDate(e.starts_at, tz) }))
-    .filter((e) => e.localDate === tomorrow);
-  // tomorrowStartUtc is included in the bounds expression above; reference here
-  // so TypeScript doesn't flag it as unused.
-  void tomorrowStartUtc;
-
   const focusSessions = (focusSessionsResult.data ?? []) as Array<{
     id: string;
     started_at: string;
@@ -146,20 +113,6 @@ export default async function TodayPage() {
     .filter((s) => s.completed)
     .reduce((sum, s) => sum + s.planned_minutes, 0);
 
-  const eventMinutes = (iso: string) =>
-    Number(formatInTimeZone(iso, tz, 'H')) * 60 +
-    Number(formatInTimeZone(iso, tz, 'm'));
-  const stripEvents: StripEvent[] = todayEvents
-    .map((e) => ({
-      id: e.id,
-      title: e.title,
-      kind: e.kind,
-      startMin: eventMinutes(e.starts_at),
-      endMin: e.ends_at ? eventMinutes(e.ends_at) : null,
-      timeLabel: formatInTimeZone(e.starts_at, tz, 'HH:mm'),
-    }))
-    .sort((a, b) => a.startMin - b.startMin);
-
   const dateLabel = formatInTimeZone(now, tz, 'EEE d MMM').toUpperCase();
   const nowLabel = formatInTimeZone(now, tz, 'HH:mm');
   const nowMinutes =
@@ -177,7 +130,6 @@ export default async function TodayPage() {
         openHabits={openHabits}
         pendingPills={pendingPills}
         focusMinutes={focusMinutes}
-        events={stripEvents}
       />
 
       <div className="gap-4 lg:columns-2 xl:columns-3">
@@ -186,11 +138,6 @@ export default async function TodayPage() {
           medications={medications}
           loggedTodayIds={loggedPillIds}
           today={today}
-        />
-        <UpcomingEventsWidget
-          todayEvents={todayEvents}
-          tomorrowEvents={tomorrowEvents}
-          tz={tz}
         />
         <TopGoalsWidget goals={activeGoals} today={today} />
         <FocusTodayWidget sessions={focusSessions} tz={tz} />

@@ -1,6 +1,6 @@
 export const USER_DATA_TABLES = [
-  'profiles', 'habits', 'habit_logs', 'goals', 'expenses', 'medications',
-  'medication_logs', 'events', 'focus_sessions', 'weekly_lifts', 'body_metrics',
+  'profiles', 'habits', 'habit_logs', 'goals', 'medications',
+  'medication_logs', 'focus_sessions', 'weekly_lifts', 'body_metrics',
   'progress_photos', 'nutrition_logs', 'salah_logs', 'salah_settings', 'self_image_items',
   'roadmap_progress', 'roadmap_notes',
 ] as const;

@@ -1,6 +1,5 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { addExpense, deleteExpense } from '@/actions/expenses';
 import { deleteAccount, setTheme } from '../account';
 import { deleteGoal, setGoalStatus } from '../goals';
 import { createHabit, deleteHabit, logHabit } from '../habits';
@@ -83,36 +82,13 @@ describe('mutation cache freshness', () => {
 
   afterEach(() => vi.restoreAllMocks());
 
-  it('uses verified identity and expires only expense data after a successful insert', async () => {
-    const [write] = enqueue('expenses', ok());
-    const form = new FormData();
-    form.set('amount', '12 000');
-    form.set('category', 'food');
-    form.set('date', '2026-10-26');
-
-    await addExpense(form);
-
-    expect(write.insert).toHaveBeenCalledWith(expect.objectContaining({ user_id: userId, amount: 12000 }));
-    expect(mocks.getUser).not.toHaveBeenCalled();
-    expect(mocks.invalidateUserData).toHaveBeenCalledExactlyOnceWith(userId, 'expenses');
-  });
-
   it('keeps existing unauthenticated behavior without creating a database client', async () => {
     mocks.tryGetUserId.mockResolvedValue(null);
 
-    await expect(deleteExpense(itemId)).resolves.toEqual({ error: 'Not authenticated' });
     await expect(logHabit({ habit_id: habitId, value: 1 })).rejects.toThrow('UNAUTHENTICATED');
     await expect(unlogSalah({ prayer: 'fajr', log_date: '2026-10-26' })).rejects.toThrow('UNAUTHENTICATED');
 
     expect(mocks.createClient).not.toHaveBeenCalled();
-    expect(mocks.invalidateUserData).not.toHaveBeenCalled();
-  });
-
-  it('does not expire caches when an expense mutation fails', async () => {
-    enqueue('expenses', failure());
-
-    await expect(deleteExpense(itemId)).resolves.toEqual({ error: 'Database rejected mutation' });
-
     expect(mocks.invalidateUserData).not.toHaveBeenCalled();
   });
 
@@ -131,7 +107,7 @@ describe('mutation cache freshness', () => {
     await deleteGoal({ id: itemId });
 
     expect(write.eq).toHaveBeenCalledWith('user_id', userId);
-    expect(mocks.invalidateUserData).toHaveBeenCalledExactlyOnceWith(userId, 'goals', 'habits', 'habit_logs', 'events', 'focus_sessions');
+    expect(mocks.invalidateUserData).toHaveBeenCalledExactlyOnceWith(userId, 'goals', 'habits', 'habit_logs', 'focus_sessions');
   });
 
   it('expires linked goal/session data and cascaded logs when deleting a habit', async () => {
